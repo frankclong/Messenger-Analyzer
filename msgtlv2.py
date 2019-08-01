@@ -6,56 +6,55 @@ import csv
 def main():
 
 	rootpath = 'C:/Users/frank/Desktop/Messenger Analyzer/messages/inbox/'
-	filenames= os.listdir (rootpath) # get all files' and folders' names in the root directory
+	filenames= os.listdir(rootpath) # get all files' and folders' names in the root directory
 
-	# Array that holds all data
-	msgDataAll = []
-	nameList=[]
-	yearList = []
-	msgCountList=[]
+	# Arrays that hold all data
+	name_list=[]
+	year_list = []
+	msg_count_list=[]
 
 	# [Name][Year][Month][Day][Messages sent, messages received]
 	# Print to CSV: Name, Year, Month, Day, Messages sent, Messages received
-	cNum = -1
+	c_num = -1
 	for filename in filenames:
 		# Name of file is "message_1.json"
-		with open(rootpath+filename+'/message_1.json') as f:
+		with open(rootpath + filename + "/message_1.json") as f:
 		  data = json.load(f)
 
 		# Check for group chat, "thread_type"
-		if data["thread_type"] == "Regular":		
+		if data["thread_type"] == "Regular":
 			# 'title' is the name of contact
-			contactName = data["title"]
-			nameList.append(contactName)
-			cNum = cNum+ 1
+			contact_name = data["title"]
+			name_list.append(contact_name)
+			c_num = c_num+ 1
 			for i in data["messages"]:
 				sender = i["sender_name"]
 				ts = i["timestamp_ms"]
 				dt_obj = datetime.datetime.fromtimestamp(int(ts/1000))
-				msgYear=dt_obj.year
+				msg_year=dt_obj.year
 
 				# Start new list in year list
-				if len(yearList) <= cNum:	
-					yearList.append([msgYear])
-					msgCountList.append([1])
-					yearNum = 0
+				if len(year_list) <= c_num:	
+					year_list.append([msg_year])
+					msg_count_list.append([1])
+					year_num = 0
 				# If year list already exists
 				else:
 					# Check if already exists
-					if msgYear not in yearList[cNum]:
-						yearList[cNum].append(msgYear)
-						msgCountList[cNum].append(1)
-						yearNum += 1
-					# if same year, add 1 
+					if msg_year not in year_list[c_num]:
+						year_list[c_num].append(msg_year)
+						msg_count_list[c_num].append(1)
+						year_num += 1
+					# If same year, add 1 
 					else:
-						msgCountList[cNum][yearNum] += 1
+						msg_count_list[c_num][year_num] += 1
 
 			#print(cNum)
-			print(nameList[cNum])
-			for yr in yearList[cNum]:
-				print(yr)
-			for msgCount in msgCountList[cNum]:
-				print(msgCount)
+			print(name_list[c_num])
+			for year in year_list[c_num]:
+				print(year)
+			for msg_count in msg_count_list[c_num]:
+				print(msg_count)
 				
 
 
@@ -64,12 +63,12 @@ def main():
 		hdr = ["Name","Year","Messages"]
 		writer.writerow(hdr)
 		nameIndex = 0
-		for name in nameList:
-			for yr in yearList[nameIndex]:
-				yIndex = yearList[nameIndex].index(yr)
+		for name in name_list:
+			for year in year_list[nameIndex]:
+				yIndex = year_list[nameIndex].index(year)
 				# Only write to file data with over 100 messages 
-				if msgCountList[nameIndex][yIndex] > 100:
-					row = [name, yr, msgCountList[nameIndex][yIndex]]
+				if msg_count_list[nameIndex][yIndex] > 100:
+					row = [name, year, msg_count_list[nameIndex][yIndex]]
 					writer.writerow(row)
 			nameIndex += 1
 
