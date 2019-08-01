@@ -2,11 +2,14 @@ import json
 import os
 import datetime
 import csv
+import sys
+
+_ROOT_PATH_ARG = 1
 
 def main():
 
-	rootpath = 'C:/Users/frank/Desktop/Messenger Analyzer/messages/inbox/'
-	filenames= os.listdir(rootpath) # get all files' and folders' names in the root directory
+	rootpath = sys.argv[_ROOT_PATH_ARG]
+	filenames = os.listdir(rootpath) # get all files' and folders' names in the root directory
 
 	# Arrays that hold all data
 	name_list=[]
