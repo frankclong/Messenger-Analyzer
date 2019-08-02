@@ -1,0 +1,4 @@
+messages/
+*.zip
+.DS_Store
+*.csv
