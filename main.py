@@ -50,18 +50,9 @@ def main():
 						year_num += 1
 					# If same year, add 1 
 					else:
-						msg_count_list[c_num][year_num] += 1
+						msg_count_list[c_num][year_num] += 1		
 
-			#print(cNum)
-			print(name_list[c_num])
-			for year in year_list[c_num]:
-				print(year)
-			for msg_count in msg_count_list[c_num]:
-				print(msg_count)
-				
-
-
-	with open('msgInfo2.csv','w', newline='', encoding='utf-8-sig') as csvFile:
+	with open('MessageData'+'.csv','w', newline='', encoding='utf-8-sig') as csvFile:
 		writer = csv.writer(csvFile)
 		hdr = ["Name","Year","Messages"]
 		writer.writerow(hdr)
