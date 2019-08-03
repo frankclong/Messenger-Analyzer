@@ -2,11 +2,14 @@ import json
 import os
 import datetime
 import csv
+import sys
+
+_ROOT_PATH_ARG = 1
 
 def main():
 
-	rootpath = 'C:/Users/frank/Desktop/Messenger Analyzer/messages/inbox/'
-	filenames= os.listdir(rootpath) # get all files' and folders' names in the root directory
+	rootpath = sys.argv[_ROOT_PATH_ARG]
+	filenames = os.listdir(rootpath) # get all files' and folders' names in the root directory
 
 	# Arrays that hold all data
 	name_list=[]
@@ -47,18 +50,9 @@ def main():
 						year_num += 1
 					# If same year, add 1 
 					else:
-						msg_count_list[c_num][year_num] += 1
+						msg_count_list[c_num][year_num] += 1		
 
-			#print(cNum)
-			print(name_list[c_num])
-			for year in year_list[c_num]:
-				print(year)
-			for msg_count in msg_count_list[c_num]:
-				print(msg_count)
-				
-
-
-	with open('msgInfo2.csv','w', newline='', encoding='utf-8-sig') as csvFile:
+	with open('MessageData'+'.csv','w', newline='', encoding='utf-8-sig') as csvFile:
 		writer = csv.writer(csvFile)
 		hdr = ["Name","Year","Messages"]
 		writer.writerow(hdr)
