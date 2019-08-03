@@ -45,7 +45,7 @@ def main():
 
 	with open('MessageData'+'.csv','w', newline='', encoding='utf-8-sig') as csvFile:
 		writer = csv.writer(csvFile)
-		hdr = ["Name","Year","Received Messages", "Sent Messages"]
+		hdr = ["Name","Year","Month","Received Messages", "Sent Messages"]
 		writer.writerow(hdr)
 		nameIndex = 0
 		for name in name_list:
@@ -53,7 +53,7 @@ def main():
 			msg_counts = name.get_counts()
 			for entry in msg_data:
 				pos = msg_data.index(entry)
-				row = [name.name,entry, msg_counts[pos][0], msg_counts[pos][1]]
+				row = [name.name,entry.year,entry.month, msg_counts[pos][0], msg_counts[pos][1]]
 				writer.writerow(row)
 
 if __name__ == "__main__":
