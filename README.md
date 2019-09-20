@@ -8,5 +8,5 @@ Make sure to have Python 3 installed.
 Pass the path to your Facebook messages/inbox directory of data as a command line argument.
 
 ```bash
-python3 msgtlv2.py "path/to/json/facebook/messages/inbox/"
+python3 main.py "path/to/json/facebook/messages/inbox/"
 ```
