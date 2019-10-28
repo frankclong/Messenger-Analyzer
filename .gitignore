@@ -2,3 +2,8 @@ messages/
 *.zip
 .DS_Store
 *.csv
+/.metadata/
+*.sublime-build
+*.json
+MessageAnalyzer/
+
