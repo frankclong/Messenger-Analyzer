@@ -7,7 +7,7 @@ import re
 import pandas as pd
 import matplotlib.pyplot as plt
 from tkinter import *
-
+from pandas.plotting import register_matplotlib_converters
 from contact import Contact
 
 _ROOT_PATH_ARG = 1
@@ -75,17 +75,18 @@ def main():
 
 def analyze():
 	# Plot messages over time
-	# TODO: deal with missing months - currently just performs linear interpolation
-	# https://stackoverflow.com/questions/44576038/insert-missing-months-rows-in-the-dataframe-in-python
-	# Get contact name
 	def msgsvtime():
+		# Get contact name
 		name_input = name_field.get()
+		# Only plot if valid name
 		if name_input in df['Name'].values:
 			# Filter
 			filtered_df = df[df['Name'] == name_input]
-			plt.figure(1)
-			plt.plot(filtered_df['Date'], filtered_df['Received Words'], label = "Received")
-			plt.plot(filtered_df['Date'], filtered_df['Sent Words'], label = "Sent")
+			# Fill missing months with 0
+			filtered_df = filtered_df.set_index('Date').resample('MS').asfreq(fill_value = 0)
+			plt.figure()
+			plt.plot(filtered_df.index, filtered_df['Received Words'], label = "Received")
+			plt.plot(filtered_df.index, filtered_df['Sent Words'], label = "Sent")
 			plt.legend()
 			plt.title(name_input)
 			plt.show()
@@ -115,23 +116,25 @@ def analyze():
 	df['Date'] = pd.to_datetime(df[['Year', 'Month']].assign(DAY=1))
 	df['Total Messages'] = df['Received Messages'] + df['Sent Messages']
 	df['Total Words'] = df['Received Words'] + df['Sent Words']
+	register_matplotlib_converters()
 
 	menu = Tk()
-	menu.geometry("500x500")
+	menu.geometry("400x200")
+	menu.title("Messenger Analyzer")
 	# Top 10 Button
-	top10_btn = Button(menu, text="Top 10", width = 20, command = top10)
-	top10_btn.place(x=150,y=100)
+	top10_btn = Button(menu, text="Top 10 Most Messaged", width = 20, command = top10)
+	top10_btn.place(x=50,y=50)
 	# Person over time
-	msgsvtime_btn = Button(menu, text="Messages over time", width = 20, command = msgsvtime)
-	msgsvtime_btn.place(x=150, y=200)
+	msgsvtime_btn = Button(menu, text="Messages over time for:", width = 20, command = msgsvtime)
+	msgsvtime_btn.place(x=50, y=100)
 	# Get input name
 	name_field = Entry(menu)
 	exit_btn = Button(menu, text="Exit", width = 20, command = exit_program)
-	exit_btn.place(x=150, y=300)
-	name_field.place(x=150, y=250)
+	exit_btn.place(x=150, y=150)
+	name_field.place(x=250, y=100)
 	name_field.focus_set()
 	menu.mainloop()
 
 if __name__ == "__main__":
-	main()
+	analyze()
 
