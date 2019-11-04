@@ -75,7 +75,7 @@ def main():
 
 def analyze():
 	# Plot messages over time
-	def msgsvtime():
+	def msgsvtime_contact():
 		# Get contact name
 		name_input = name_field.get()
 		# Only plot if valid name
@@ -106,6 +106,15 @@ def analyze():
 		ax.set_title("Top " + str(n) + " Most Messaged")
 		plt.setp(ax.get_xticklabels(), rotation=30, horizontalalignment='right')
 		plt.show()
+
+	def msgsvtime_all():
+		plt.figure()
+		filtered_df = df.groupby(df['Date'])
+		filtered_df = filtered_df.sum()
+		plt.plot(filtered_df.index, filtered_df['Received Words'], label = "Received")
+		plt.plot(filtered_df.index, filtered_df['Sent Words'], label = "Sent")
+		plt.legend()
+		plt.show()
 	
 	def exit_program():
 		exit()
@@ -119,22 +128,26 @@ def analyze():
 	register_matplotlib_converters()
 
 	menu = Tk()
-	menu.geometry("400x200")
+	menu.geometry("400x300")
 	menu.title("Messenger Analyzer")
 	# Top 10 Button
 	top10_btn = Button(menu, text="Top 10 Most Messaged", width = 20, command = top10)
 	top10_btn.place(x=50,y=50)
 	# Person over time
-	msgsvtime_btn = Button(menu, text="Messages over time for:", width = 20, command = msgsvtime)
+	msgsvtime_btn = Button(menu, text="Messages over time for:", width = 20, command = msgsvtime_contact)
 	msgsvtime_btn.place(x=50, y=100)
 	# Get input name
 	name_field = Entry(menu)
-	exit_btn = Button(menu, text="Exit", width = 20, command = exit_program)
-	exit_btn.place(x=150, y=150)
 	name_field.place(x=250, y=100)
 	name_field.focus_set()
+	# Total messages over time
+	msgsvtime_btn = Button(menu, text="Total Messages over Time", width = 20, command = msgsvtime_all)
+	msgsvtime_btn.place(x=50, y=150)
+	# Exit button
+	exit_btn = Button(menu, text="Exit", width = 20, command = exit_program)
+	exit_btn.place(x=150, y=200)
 	menu.mainloop()
 
 if __name__ == "__main__":
-	analyze()
+	main()
 
