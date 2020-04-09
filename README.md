@@ -10,3 +10,11 @@ Pass the path to your Facebook messages/inbox directory of data as a command lin
 ```bash
 python3 main.py "path/to/json/facebook/messages/inbox/"
 ```
+
+## Required Libraries
+
+* pandas
+* matplotlib
+* seaborn
+* numpy
+* spacy (with en_core_web_sm model)

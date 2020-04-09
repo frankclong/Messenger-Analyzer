@@ -1,10 +1,11 @@
 class Contact():
-	def __init__ (self, name):
+	def __init__ (self, name, folder_name):
 		self.name = name
 		#self.sent_msg_dates = []
 		#self.rcvd_msg_dates = []
 		self.msg_dates = []
 		self.msg_counts = []
+		self.folder_name = folder_name
 
 	# Add to list of date objects
 	# Perform calculations/analysis using this data
@@ -22,7 +23,7 @@ class Contact():
 			for ex_date in self.msg_dates:
 				if ex_date.year == msg_year and ex_date.month == msg_month:
 					pos = self.msg_dates.index(ex_date)
-					exit
+					#exit
 			
 			# Exists
 			if pos != -1:
@@ -48,7 +49,7 @@ class Contact():
 			for ex_date in self.msg_dates:
 				if ex_date.year == msg_year and ex_date.month == msg_month:
 					pos = self.msg_dates.index(ex_date)
-					exit
+					#exit
 	
 			if pos != -1:
 				self.msg_counts[pos][0] += 1
