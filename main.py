@@ -20,6 +20,7 @@ _ROOT_PATH_ARG = 1
 # Load data 
 def main():
 	rootpath = sys.argv[_ROOT_PATH_ARG]
+	print(rootpath)
 	filenames = os.listdir(rootpath) # get all files' and folders' names in the root directory
 	# Arrays that hold all contact data
 	name_list=[]
@@ -30,7 +31,7 @@ def main():
 	# Loop through all folders
 	for filename in filenames:
 		# Name of file is "message_1.json"
-		with open(rootpath + filename + "/message_1.json") as f:
+		with open(os.path.join(rootpath, filename) + "/message_1.json") as f:
 		  data = json.load(f)
 
 		# Only analyze direct messages and if more than 100 messages sent
@@ -40,7 +41,6 @@ def main():
 			name_list.append(Contact(contact_name, filename))
 			c_num = c_num+ 1
 			my_contact=name_list[c_num]
-			#print(my_contact.name)
 
 			for i in data["messages"]:
 				# Check if content exists (not vid or photo or shared links)
@@ -63,18 +63,18 @@ def main():
 
 					else:
 						my_contact.add_sent_msg_date(dt_obj, num_words)
-
-    # Write data to a CSV
+	
+	# Write data to a CSV
 	with open('MessageData'+'.csv','w', newline='', encoding='utf-8-sig') as csvFile:
 		writer = csv.writer(csvFile)
-		hdr = ["Name","Year","Month","Received Messages", "Sent Messages","Received Words","Sent Words"]
+		hdr = ["Name","Year","Month","Day","Hour","Received Messages", "Sent Messages","Received Words","Sent Words"]
 		writer.writerow(hdr)
 		for name in name_list:
 			msg_data = name.get_dates()
 			msg_counts = name.get_counts()
 			for entry in msg_data:
 				pos = msg_data.index(entry)
-				row = [name.name,entry.year,entry.month, msg_counts[pos][0], msg_counts[pos][1],msg_counts[pos][2],msg_counts[pos][3]]
+				row = [name.name,entry.year,entry.month,entry.day,entry.hour, msg_counts[pos][0], msg_counts[pos][1],msg_counts[pos][2],msg_counts[pos][3]]
 				writer.writerow(row)
 
 	with open('Contact_Folders'+'.csv','w', newline='', encoding='utf-8-sig') as refFile:
@@ -93,6 +93,7 @@ def analyze():
 		name_input = name_field.get()
 		# Only plot if valid name
 		if name_input in df['Name'].values:
+			print("Getting messages for " +  name_input + "...")
 			# Filter
 			filtered_df = df[df['Name'] == name_input]
 			# Fill missing months with 0
@@ -103,17 +104,20 @@ def analyze():
 			plt.legend()
 			plt.title(name_input)
 			plt.show()
+		else:
+			print(name_input + " not found")
 	def top10():
 		# Top 10 (or n)
+		print("Getting top 10 most messaged...")
 		n = 10
 		fig = plt.figure(figsize = [10, 5])
 		ax = fig.add_axes([0.1,0.2,0.85,0.7]) 
 		# Group by name, filter top 10 and sort, plot Name vs. messages
-		print(df.head())
+		#print(df.head())
 		grouped_contacts = df.groupby(df['Name'])
-		print(grouped_contacts.head())
-		grouped_contacts = grouped_contacts['Name', 'Total Messages', 'Total Words'].sum()
-		print(grouped_contacts.head())
+		#print(grouped_contacts.head())
+		grouped_contacts = grouped_contacts[['Name', 'Total Messages', 'Total Words']].sum()
+		#print(grouped_contacts.head())
 
 		grouped_contacts.sort_values(by = ['Total Messages'], ascending = [False], inplace=True)
 		if len(grouped_contacts.index) > n:
@@ -125,6 +129,7 @@ def analyze():
 		plt.show()
 
 	def msgsvtime_all():
+		print("Getting messages over time...")
 		plt.figure()
 		filtered_df = df.groupby(df['Date'])
 		filtered_df = filtered_df.sum()
@@ -137,76 +142,84 @@ def analyze():
 	# May need to then save all message info into contact class? 
 	# Word spectrum 
 	def word_spectrum():
-	    # Get contact name
-	    nlp = spacy.load('en_core_web_sm')
-	    rootpath = sys.argv[_ROOT_PATH_ARG]
-	    name_input = name_field.get()
-	    folder_name = folders.loc[name_input]['Folder']
-	    with open(rootpath + folder_name + "/message_1.json") as f:
-	        data = json.load(f)
+		# Get contact name
+		nlp = spacy.load('en_core_web_sm')
+		rootpath = sys.argv[_ROOT_PATH_ARG]
+		name_input = name_field.get()
+		folder_name = folders.loc[name_input]['Folder']
+		print("Getting word spectrum for " + name_input)
+		with open(rootpath + folder_name + "/message_1.json") as f:
+		    data = json.load(f)
 
-	    word_counts = {}
-	    my_count = 0
-	    friend_count = 0 
+		word_counts = {}
+		my_count = 0
+		friend_count = 0 
 
-	    # Only analyze direct messages and if more than 100 messages sent
-	    for i in data["messages"]:
-	        # Check if content exists (not vid or photo or shared links)
-	        # Note that some shared links include message
-	        if i.get("content") and i["type"] == 'Generic':
-	            # Count number of words
-	            message_text = i["content"] # Message 
-	            message_doc = nlp(message_text)
-	            sender = i["sender_name"]
-	            # Remove all punctuation
-	            for token in message_doc:
-	                word = str(token.lemma_).lower()
-	                #print(word, token.is_stop, token.is_punct)
+		# Can I add some kind of % complete indicator?
+		# Only analyze direct messages and if more than 100 messages sent
+		for i in data["messages"]:
+		    # Check if content exists (not vid or photo or shared links)
+		    # Note that some shared links include message
+		    if i.get("content") and i["type"] == 'Generic':
+		        # Count number of words
+		        message_text = i["content"] # Message 
+		        message_doc = nlp(message_text)
+		        sender = i["sender_name"]
+		        # Remove all punctuation
+		        for token in message_doc:
+		            word = str(token.lemma_).lower()
+		            #print(word, token.is_stop, token.is_punct)
 
-	                # Ignore stopwords and punctuations and pronouns
-	                if (not token.is_stop) and (not token.is_punct):
-	                    # Left is me, right is converser
-	                    if sender == name_input:
-	                        friend_count += 1
-	                        if word in word_counts.keys():
-	                            word_counts.update({word:[word_counts[word][0], word_counts[word][1] + 1]})
-	                        else:
-	                            word_counts[word] = [0,1]
-	                    else:
-	                        my_count += 1
-	                        if word in word_counts.keys():
-	                            word_counts.update({word:[word_counts[word][0]+1, word_counts[word][1]]})
-	                        else:
-	                            word_counts[word] = [1,0]
+		            # Ignore stopwords and punctuations and pronouns
+		            if (not token.is_stop) and (not token.is_punct):
+		                # Left is me, right is converser
+		                if sender == name_input:
+		                    friend_count += 1
+		                    if word in word_counts.keys():
+		                        word_counts.update({word:[word_counts[word][0], word_counts[word][1] + 1]})
+		                    else:
+		                        word_counts[word] = [0,1]
+		                else:
+		                    my_count += 1
+		                    if word in word_counts.keys():
+		                        word_counts.update({word:[word_counts[word][0]+1, word_counts[word][1]]})
+		                    else:
+		                        word_counts[word] = [1,0]
 
-	    words_data = pd.DataFrame.from_dict(word_counts,orient='index')
-	    words_data = words_data.reset_index()
-	    words_data.columns = ['word','me', 'friend']
-	    words_data['my_norm'] = words_data['me']/my_count*1000
-	    words_data['friend_norm'] = words_data['friend']/friend_count*1000
-	    words_data['my_prop'] = words_data['my_norm']/(words_data['my_norm']+words_data['friend_norm'])
-	    words_data['prop_bin'] = np.floor(words_data['my_prop']*10)
-	    # Filter
-	    words_data = words_data[(words_data['friend_norm'] > 1) | (words_data['my_norm'] > 1)]
-	    words_data['total'] = words_data['me']+words_data['friend']
-	    words_data.sort_values(by = ['total'], ascending = [False], inplace=True)
-	    # Visual
-	    summ = pd.DataFrame()
-	    for i in range(10):
-	        summ[str(i)] = words_data[words_data['prop_bin']==i]['word'].reset_index().head(10)['word']
+		words_data = pd.DataFrame.from_dict(word_counts,orient='index')
+		words_data = words_data.reset_index()
+		words_data.columns = ['word','me', 'friend']
+		words_data['my_norm'] = words_data['me']/my_count*1000
+		words_data['friend_norm'] = words_data['friend']/friend_count*1000
+		words_data['my_prop'] = words_data['my_norm']/(words_data['my_norm']+words_data['friend_norm'])
+		words_data['prop_bin'] = np.floor(words_data['my_prop']*10)
+		# Filter
+		words_data = words_data[(words_data['friend_norm'] > 1) | (words_data['my_norm'] > 1)]
+		words_data['total'] = words_data['me']+words_data['friend']
+		words_data.sort_values(by = ['total'], ascending = [False], inplace=True)
+		# Visual
+		summ = pd.DataFrame()
+		for i in range(10):
+		    summ[str(i)] = words_data[words_data['prop_bin']==i]['word'].reset_index().head(10)['word']
 
-	    bins = []
-	    for i in range(10):
-	        bins.append(','.join(word for word in words_data[words_data['prop_bin']==i]['word'].reset_index().head(5)['word'].tolist()))
-	    summ_df = pd.DataFrame(bins, columns = ['Words'])
-	    summ_df['Val'] = pd.Series([i for i in range(10)])
-	    summ_df.set_index('Words', inplace = True)
-	    fig = plt.figure(figsize = (13,5))
-	    ax = fig.add_axes([0.22	,0.1,0.85,0.7]) 
-	    sns.heatmap(summ_df)
-	    plt.show()
+		bins = []
+		for i in range(10):
+		    bins.append(','.join(word for word in words_data[words_data['prop_bin']==i]['word'].reset_index().head(5)['word'].tolist()))
+		summ_df = pd.DataFrame(bins, columns = ['Words'])
+		summ_df['Val'] = pd.Series([i for i in range(10)])
+		summ_df.set_index('Words', inplace = True)
+		fig = plt.figure(figsize = (13,5))
+		ax = fig.add_axes([0.22	,0.1,0.85,0.7]) 
+		sns.heatmap(summ_df)
+		plt.show()
 	    
 	# Peak times
+	def message_hours():
+		print("Getting your message times...")
+		hourly_totals = df.groupby('Hour').sum()
+		plt.figure()
+		plt.bar(hourly_totals.index, hourly_totals['Sent Messages'])
+		plt.show()
 
 	def exit_program():
 	    exit()
@@ -232,6 +245,11 @@ def analyze():
 	# Top 10 Button
 	top10_btn = Button(menu, text="Top 10 Most Messaged", width = 20, command = top10)
 	top10_btn.grid(column = 0, row = 1)
+	# Message times button
+	hour_btn = Button(menu, text="Message Distribution by Hour", width = 20, command = message_hours	)
+	hour_btn.grid(column = 0, row = 3)
+	
+
 	# Person over time
 	msgsvtime_btn = Button(menu, text="Messages over time", width = 20, command = msgsvtime_contact)
 	msgsvtime_btn.grid(column = 1, row = 1)
@@ -251,5 +269,5 @@ def analyze():
 	menu.mainloop()
 
 if __name__ == "__main__":
-	main()
+	#main()
 	analyze()
