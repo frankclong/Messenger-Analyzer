@@ -14,8 +14,56 @@ import math
 import seaborn as sns
 import numpy as np
 import spacy
-
+import pymongo
+import time
 _ROOT_PATH_ARG = 1
+
+# python main.py ./messages/inbox
+
+# Function to load data to a database (accessing data much better than individual json files)
+def load():
+	# Connect to database
+	client = pymongo.MongoClient()
+	db = client['messenger-analyzer']
+	messages = db['messages']
+	contacts = db['contacts']
+	rootpath = sys.argv[_ROOT_PATH_ARG]
+	print(rootpath)
+	filenames = os.listdir(rootpath) # get all files' and folders' names in the root directory
+
+	# Loop through all folders
+	for filename in filenames:
+		# Name of file is "message_1.json"
+		with open(os.path.join(rootpath, filename) + "/message_1.json") as f:
+			data = json.load(f)
+			# Only analyze direct messages and if more than 100 messages sent
+		if data["thread_type"] == "Regular" and len(data["messages"]) > 100:
+			# Add contact to collection if does not exist
+			print(filename.lower())
+			contact_id = filename.lower()
+			contact_name = data["title"]
+			
+			if len(list(contacts.find({'name' : contact_name}))) == 0:
+				print("Adding ", contact_name)
+				doc = {
+					"name" : contact_name,
+					"id" : filename.lower() 
+				}
+				contacts.insert_one(doc)
+			
+			#indconv = db[contact_id]
+			#indconv.drop()
+			#indconv.insert_many(data['messages'])
+
+			messages_list = data['messages']
+
+			for message_obj in messages_list:
+				# Check if content exists (not vid or photo or shared links)
+				# Note that some shared links include message
+				message_obj['contact_id'] = contact_id
+				ts= message_obj["timestamp_ms"]
+				message_obj['datetime'] = datetime.datetime.fromtimestamp(int(ts/1000))
+			messages.insert_many(messages_list)
 
 # Load data 
 def main():
@@ -97,7 +145,7 @@ def analyze():
 			# Filter
 			filtered_df = df[df['Name'] == name_input]
 			# Fill missing months with 0
-			filtered_df = filtered_df.set_index('Date').resample('MS').asfreq(fill_value = 0)
+			filtered_df = filtered_df.set_index('Date').resample('MS').sum()
 			plt.figure()
 			plt.plot(filtered_df.index, filtered_df['Received Messages'], label = "Received")
 			plt.plot(filtered_df.index, filtered_df['Sent Messages'], label = "Sent")
@@ -144,7 +192,7 @@ def analyze():
 	def word_spectrum():
 		# Get contact name
 		nlp = spacy.load('en_core_web_sm')
-		rootpath = sys.argv[_ROOT_PATH_ARG]
+		#rootpath = sys.argv[_ROOT_PATH_ARG]
 		name_input = name_field.get()
 		folder_name = folders.loc[name_input]['Folder']
 		print("Getting word spectrum for " + name_input)
@@ -269,5 +317,6 @@ def analyze():
 	menu.mainloop()
 
 if __name__ == "__main__":
+	load()
 	#main()
-	analyze()
+	#analyze()
