@@ -62,8 +62,21 @@ def load():
 				# Note that some shared links include message
 				message_obj['contact_id'] = contact_id
 				ts= message_obj["timestamp_ms"]
-				message_obj['datetime'] = datetime.datetime.fromtimestamp(int(ts/1000))
+				dt_obj = datetime.datetime.fromtimestamp(int(ts/1000))
+				message_obj['datetime'] = dt_obj
+				message_obj['year'] = dt_obj.year
+				message_obj['month'] = dt_obj.month
+				message_obj['day'] = dt_obj.day
+				message_obj['hour'] = dt_obj.hour
 			messages.insert_many(messages_list)
+
+def getLastMessage():
+	# Connect to database
+	client = pymongo.MongoClient()
+	db = client['messenger-analyzer']
+	messages = db['messages']
+	last_message = list(messages.find().sort('datetime', -1).limit(1))[0]
+	print(last_message['datetime'])
 
 # Load data 
 def main():
@@ -192,7 +205,7 @@ def analyze():
 	def word_spectrum():
 		# Get contact name
 		nlp = spacy.load('en_core_web_sm')
-		#rootpath = sys.argv[_ROOT_PATH_ARG]
+		rootpath = sys.argv[_ROOT_PATH_ARG]
 		name_input = name_field.get()
 		folder_name = folders.loc[name_input]['Folder']
 		print("Getting word spectrum for " + name_input)
@@ -317,6 +330,7 @@ def analyze():
 	menu.mainloop()
 
 if __name__ == "__main__":
-	load()
+	#load()
+	#getLastMessage()
 	#main()
 	#analyze()
