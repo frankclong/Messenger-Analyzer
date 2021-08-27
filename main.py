@@ -243,11 +243,43 @@ def analyze():
 
 	def msgsvtime_all():
 		print("Getting messages over time...")
+		# Get messages sent
+		pipeline = [
+			{"$match" : {"sender_name" : "Frank Long"}},
+			{"$group": {"_id": {"year":"$year","month":"$month"}, "count": {"$sum": 1}}},
+			{"$sort" : {"_id": 1}}
+		]
+		messages_sent = list(messages.aggregate(pipeline))
+		sent_dates = []
+		sent_counts = []
+		for val in messages_sent:
+			# Get real name
+			year = val['_id']['year']
+			month = val['_id']['month']
+			date = datetime.datetime(year, month, 1)
+			sent_dates.append(date)
+			sent_counts.append(val['count'])
+		
+		# Get messages received
+		pipeline = [
+			{"$match" : {"sender_name" : {'$ne':"Frank Long"}}},
+			{"$group": {"_id": {"year":"$year","month":"$month"}, "count": {"$sum": 1}}},
+			{"$sort" : {"_id": 1}}
+		]
+		messages_rcvd = list(messages.aggregate(pipeline))
+		rcvd_dates = []
+		rcvd_counts = []
+		for val in messages_rcvd:
+			# Get real name
+			year = val['_id']['year']
+			month = val['_id']['month']
+			date = datetime.datetime(year, month, 1)
+			rcvd_dates.append(date)
+			rcvd_counts.append(val['count'])
+
 		plt.figure()
-		filtered_df = df.groupby(df['Date'])
-		filtered_df = filtered_df.sum()
-		plt.plot(filtered_df.index, filtered_df['Received Messages'], label = "Received")
-		plt.plot(filtered_df.index, filtered_df['Sent Messages'], label = "Sent")
+		plt.plot(rcvd_dates, rcvd_counts, label = "Received")
+		plt.plot(sent_dates, sent_counts, label = "Sent")
 		plt.legend()
 		plt.show()
 
@@ -397,12 +429,45 @@ def test():
 	db = client['messenger-analyzer']
 	messages = db['messages']
 	contacts = db['contacts']
+
+	# Get messages sent
 	pipeline = [
 		{"$match" : {"sender_name" : "Frank Long"}},
-		{"$group": {"_id": "$hour", "count": {"$sum": 1}}},
+		{"$group": {"_id": {"year":"$year","month":"$month"}, "count": {"$sum": 1}}},
 		{"$sort" : {"_id": 1}}
 	]
-	vals = list(messages.aggregate(pipeline))
+	messages_sent = list(messages.aggregate(pipeline))
+	sent_dates = []
+	sent_counts = []
+	for val in messages_sent:
+		# Get real name
+		year = val['_id']['year']
+		month = val['_id']['month']
+		date = datetime.datetime(year, month, 1)
+		sent_dates.append(date)
+		sent_counts.append(val['count'])
+	
+	# Get messages received
+	pipeline = [
+		{"$match" : {"sender_name" : {'$ne':"Frank Long"}}},
+		{"$group": {"_id": {"year":"$year","month":"$month"}, "count": {"$sum": 1}}},
+		{"$sort" : {"_id": 1}}
+	]
+	messages_rcvd = list(messages.aggregate(pipeline))
+	rcvd_dates = []
+	rcvd_counts = []
+	for val in messages_rcvd:
+		# Get real name
+		year = val['_id']['year']
+		month = val['_id']['month']
+		date = datetime.datetime(year, month, 1)
+		rcvd_dates.append(date)
+		rcvd_counts.append(val['count'])
+
+	plt.figure()
+	plt.plot(sent_dates, sent_counts)
+	plt.plot(rcvd_dates, rcvd_counts)
+	plt.show()
 
 if __name__ == "__main__":
 	#load()
