@@ -78,6 +78,49 @@ def getLastMessage():
 	last_message = list(messages.find().sort('datetime', -1).limit(1))[0]
 	print(last_message['datetime'])
 
+def update():
+	# Connect to database
+	client = pymongo.MongoClient()
+	db = client['messenger-analyzer']
+	messages = db['messages']
+	contacts = db['contacts']
+	rootpath = sys.argv[_ROOT_PATH_ARG]
+	print(rootpath)
+	filenames = os.listdir(rootpath) # get all files' and folders' names in the root directory
+
+	# Loop through all folders
+	for filename in filenames:
+		# Name of file is "message_1.json"
+		with open(os.path.join(rootpath, filename) + "/message_1.json") as f:
+			data = json.load(f)
+			# Only analyze direct messages and if more than 100 messages sent
+		if data["thread_type"] == "Regular":
+			# Add contact to collection if does not exist
+			print(filename.lower())
+			contact_id = filename.lower()
+			contact_name = data["title"]
+			
+			if len(list(contacts.find({'name' : contact_name}))) == 0:
+				print("Adding new contact ", contact_name)
+				doc = {
+					"name" : contact_name,
+					"id" : filename.lower() 
+				}
+				contacts.insert_one(doc)
+			else:
+				print("Updating ", contact_name)
+			messages_list = data['messages']
+			for message_obj in messages_list:
+				message_obj['contact_id'] = contact_id
+				ts= message_obj["timestamp_ms"]
+				dt_obj = datetime.datetime.fromtimestamp(int(ts/1000))
+				message_obj['datetime'] = dt_obj
+				message_obj['year'] = dt_obj.year
+				message_obj['month'] = dt_obj.month
+				message_obj['day'] = dt_obj.day
+				message_obj['hour'] = dt_obj.hour
+			messages.insert_many(messages_list)
+
 # Load data 
 def main():
 	rootpath = sys.argv[_ROOT_PATH_ARG]
@@ -147,6 +190,10 @@ def main():
 			writer.writerow(row)
 
 def analyze():
+	client = pymongo.MongoClient()
+	db = client['messenger-analyzer']
+	messages = db['messages']
+	contacts = db['contacts']
 	# TODO: use OOP for plots
 	# Plot messages over time
 	def msgsvtime_contact():
@@ -167,6 +214,7 @@ def analyze():
 			plt.show()
 		else:
 			print(name_input + " not found")
+	
 	def top10():
 		# Top 10 (or n)
 		print("Getting top 10 most messaged...")
@@ -174,16 +222,20 @@ def analyze():
 		fig = plt.figure(figsize = [10, 5])
 		ax = fig.add_axes([0.1,0.2,0.85,0.7]) 
 		# Group by name, filter top 10 and sort, plot Name vs. messages
-		#print(df.head())
-		grouped_contacts = df.groupby(df['Name'])
-		#print(grouped_contacts.head())
-		grouped_contacts = grouped_contacts[['Name', 'Total Messages', 'Total Words']].sum()
-		#print(grouped_contacts.head())
-
-		grouped_contacts.sort_values(by = ['Total Messages'], ascending = [False], inplace=True)
-		if len(grouped_contacts.index) > n:
-			grouped_contacts = grouped_contacts[0:n-1]
-		ax.bar(grouped_contacts.index, grouped_contacts['Total Messages'])
+		pipeline = [
+			{"$group": {"_id": "$contact_id", "count": {"$sum": 1}}},
+			{"$sort" : {"count": -1}}
+		]
+		vals = list(messages.aggregate(pipeline))[0:10]
+		names = []
+		message_count = []
+		for val in vals:
+			# Get real name
+			contact = contacts.find({'id' : val['_id']})
+			name = list(contact)[0]['name']
+			names.append(name)
+			message_count.append(val['count'])
+		ax.bar(names, message_count)
 		ax.set_ylabel("Number of Messages")
 		ax.set_title("Top " + str(n) + " Most Messaged")
 		plt.setp(ax.get_xticklabels(), rotation=30, horizontalalignment='right')
@@ -277,9 +329,20 @@ def analyze():
 	# Peak times
 	def message_hours():
 		print("Getting your message times...")
-		hourly_totals = df.groupby('Hour').sum()
+		pipeline = [
+			{"$match" : {"sender_name" : "Frank Long"}},
+			{"$group": {"_id": "$hour", "count": {"$sum": 1}}},
+			{"$sort" : {"_id": 1}}
+		]
+		vals = list(messages.aggregate(pipeline))
+		hours = range(24)
+		message_count = []
+		for val in vals:
+			message_count.append(val['count'])
+		total_messages = sum(message_count)
+		message_frac = [c/total_messages for c in message_count]
 		plt.figure()
-		plt.bar(hourly_totals.index, hourly_totals['Sent Messages'])
+		plt.bar(hours, message_frac)
 		plt.show()
 
 	def exit_program():
@@ -329,8 +392,22 @@ def analyze():
 	exit_btn.grid(column = 2, row = 4)
 	menu.mainloop()
 
+def test():
+	client = pymongo.MongoClient()
+	db = client['messenger-analyzer']
+	messages = db['messages']
+	contacts = db['contacts']
+	pipeline = [
+		{"$match" : {"sender_name" : "Frank Long"}},
+		{"$group": {"_id": "$hour", "count": {"$sum": 1}}},
+		{"$sort" : {"_id": 1}}
+	]
+	vals = list(messages.aggregate(pipeline))
+
 if __name__ == "__main__":
 	#load()
 	#getLastMessage()
+	#update()
 	#main()
-	#analyze()
+	analyze()
+	#test()
