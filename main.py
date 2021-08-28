@@ -1,32 +1,37 @@
 import json
 import os
 import datetime
-import csv
 import sys
 import re
 import pandas as pd
 import matplotlib.pyplot as plt
-from tkinter import *
-from pandas.plotting import register_matplotlib_converters
-from contact import Contact
+from tkinter import Tk, Canvas, Entry, Button, PhotoImage
+import tkinter.font as TkFont
+from pymongo import message
 import seaborn as sns
 import numpy as np
 import spacy
 import pymongo
 import time
 import glob
+from pathlib import Path
 _ROOT_PATH_ARG = 1
+
+MY_NAME = "Frank Long"
 
 # python main.py ./messages/inbox
 
+# Connect to database
+client = pymongo.MongoClient()
+db = client['messenger-analyzer']
+messages = db['messages']
+contacts = db['contacts']
+
 # Function to load data to a database (accessing data much better than individual json files)
-def load():
-	# Connect to database
-	client = pymongo.MongoClient()
-	db = client['messenger-analyzer']
-	messages = db['messages']
-	contacts = db['contacts']
-	rootpath = sys.argv[_ROOT_PATH_ARG]
+def load(rootpath=''):
+	if not rootpath:
+		print("No path provided")
+		return
 	print(rootpath)
 	filenames = os.listdir(rootpath) # get all files' and folders' names in the root directory
 
@@ -36,6 +41,9 @@ def load():
 		# As of recent update, larger datasets are split into multiple files
 		filepath = os.path.join(rootpath, filename)
 		message_files = glob.glob(os.path.join(filepath, "message_*.json"))
+		if len(message_files) == 0:
+			print("Message files not found!")
+			return
 
 		for message_file in message_files:
 			#basename = os.path.basename(message_file)
@@ -84,12 +92,10 @@ def getLastMessage():
 	last_message = list(messages.find().sort('datetime', -1).limit(1))[0]
 	print(last_message['datetime'])
 
-def update():
-	# Connect to database
-	client = pymongo.MongoClient()
-	db = client['messenger-analyzer']
-	messages = db['messages']
-	contacts = db['contacts']
+def update(rootpath=''):
+	if not rootpath:
+		print("No path provided")
+		return
 	rootpath = sys.argv[_ROOT_PATH_ARG]
 	print(rootpath)
 	filenames = os.listdir(rootpath) # get all files' and folders' names in the root directory
@@ -100,6 +106,9 @@ def update():
 		# As of recent update, larger datasets are split into multiple files
 		filepath = os.path.join(rootpath, filename)
 		message_files = glob.glob(os.path.join(filepath, "message_*.json"))
+		if len(message_files) == 0:
+			print("Message files not found!")
+			return
 
 		for message_file in message_files:
 			#basename = os.path.basename(message_file)
@@ -133,98 +142,23 @@ def update():
 					message_obj['hour'] = dt_obj.hour
 				messages.insert_many(messages_list)
 
-def analyze():
-	client = pymongo.MongoClient()
-	db = client['messenger-analyzer']
-	messages = db['messages']
-	contacts = db['contacts']
-	# TODO: use OOP for plots
-	# Plot messages over time
-	def msgsvtime_contact():
-		# Get contact name
-		name_input = name_field.get()
-		contact = list(contacts.find({'name' : name_input}))
-		# Only plot if valid name
-		if len(contact) > 0:
-			print("Getting messages for " +  name_input + "...")
-			contact_id = contact[0]['id']
-			# Fill missing months with 0 TODO: how to do this in mongo?
-			# Get messages sent
-			pipeline = [
-				{"$match" : {"contact_id":contact_id,"sender_name" : "Frank Long"}},
-				{"$group": {"_id": {"year":"$year","month":"$month"}, "count": {"$sum": 1}}},
-				{"$sort" : {"_id": 1}}
-			]
-			messages_sent = list(messages.aggregate(pipeline))
-			sent_dates = []
-			sent_counts = []
-			for val in messages_sent:
-				# Get real name
-				year = val['_id']['year']
-				month = val['_id']['month']
-				date = datetime.datetime(year, month, 1)
-				sent_dates.append(date)
-				sent_counts.append(val['count'])
-			
-			# Get messages received
-			pipeline = [
-				{"$match" : {"contact_id":contact_id, "sender_name" : {'$ne':"Frank Long"}}},
-				{"$group": {"_id": {"year":"$year","month":"$month"}, "count": {"$sum": 1}}},
-				{"$sort" : {"_id": 1}}
-			]
-			messages_rcvd = list(messages.aggregate(pipeline))
-			rcvd_dates = []
-			rcvd_counts = []
-			for val in messages_rcvd:
-				# Get real name
-				year = val['_id']['year']
-				month = val['_id']['month']
-				date = datetime.datetime(year, month, 1)
-				rcvd_dates.append(date)
-				rcvd_counts.append(val['count'])
-
-			plt.figure()
-			plt.plot(rcvd_dates, rcvd_counts, label = "Received")
-			plt.plot(sent_dates, sent_counts, label = "Sent")
-			plt.xlabel("Date")
-			plt.ylabel("Number of Messages")
-			plt.legend()
-			plt.title(name_input)
-			plt.show()
-		else:
-			print(name_input + " not found")
-	
-	def top10():
-		# Top 10 (or n)
-		print("Getting top 10 most messaged...")
-		n = 20
-		fig = plt.figure(figsize = [10, 5])
-		ax = fig.add_axes([0.1,0.2,0.85,0.7]) 
-		# Group by name, filter top 10 and sort, plot Name vs. messages
-		pipeline = [
-			{"$group": {"_id": "$contact_id", "count": {"$sum": 1}}},
-			{"$sort" : {"count": -1}}
-		]
-		vals = list(messages.aggregate(pipeline))[0:n]
-		names = []
-		message_count = []
-		for val in vals:
-			# Get real name
-			contact = contacts.find({'id' : val['_id']})
-			name = list(contact)[0]['name']
-			names.append(name)
-			message_count.append(val['count'])
-		ax.bar(names, message_count)
-		ax.set_ylabel("Number of Messages")
-		ax.set_title("Top " + str(n) + " Most Messaged")
-		plt.setp(ax.get_xticklabels(), rotation=30, horizontalalignment='right')
-		plt.show()
-
-	def msgsvtime_all():
-		print("Getting messages over time...")
+############################################################
+####### 					PLOTS					########
+############################################################
+# TODO: use OOP for plots
+# Plot messages over time
+def msgsvtime_contact(name_field):
+	# Get contact name
+	name_input = name_field.get()
+	contact = list(contacts.find({'name' : name_input}))
+	# Only plot if valid name
+	if len(contact) > 0:
+		print("Getting messages for " +  name_input + "...")
+		contact_id = contact[0]['id']
+		# Fill missing months with 0 TODO: how to do this in mongo?
 		# Get messages sent
 		pipeline = [
-			{"$match" : {"sender_name" : "Frank Long"}},
+			{"$match" : {"contact_id":contact_id,"sender_name" : MY_NAME}},
 			{"$group": {"_id": {"year":"$year","month":"$month"}, "count": {"$sum": 1}}},
 			{"$sort" : {"_id": 1}}
 		]
@@ -241,7 +175,7 @@ def analyze():
 		
 		# Get messages received
 		pipeline = [
-			{"$match" : {"sender_name" : {'$ne':"Frank Long"}}},
+			{"$match" : {"contact_id":contact_id, "sender_name" : {'$ne': MY_NAME}}},
 			{"$group": {"_id": {"year":"$year","month":"$month"}, "count": {"$sum": 1}}},
 			{"$sort" : {"_id": 1}}
 		]
@@ -262,145 +196,183 @@ def analyze():
 		plt.xlabel("Date")
 		plt.ylabel("Number of Messages")
 		plt.legend()
-		plt.title("Total Messages over Time")
+		plt.title(name_input)
 		plt.show()
+	else:
+		print(name_input + " not found")
 
-	# In-depth analysis of an individual conversation
-	# Word spectrum 
-	# Curretly very slow.. consider sampling the conversation or explore other ways of processing
-	def word_spectrum():
-		nlp = spacy.load('en_core_web_sm')
-		name_input = name_field.get()
-		contact = list(contacts.find({'name' : name_input}))
-		# Only plot if valid name
-		if len(contact) > 0:
-			print("Getting messages for " +  name_input + "...")
-			contact_id = contact[0]['id']
-			# Get messages sent
-			sent_query = {"contact_id":contact_id, "sender_name":"Frank Long", "type":"Generic", "content" : {"$exists":True}}
-			rcvd_query = {"contact_id":contact_id, "sender_name" : {"$ne":"Frank Long"}, "type":"Generic", "content" : {"$exists":True}}
-			sent_messages = list(messages.find(sent_query))
-			rcvd_messages = list(messages.find(rcvd_query))
-			sent_messages_joined = ' '.join(map(lambda x: x['content'], sent_messages))
-			rcvd_messages_joined = ' '.join(map(lambda x: x['content'], rcvd_messages))
+def top10():
+	# Top 10 (or n)
+	print("Getting top 10 most messaged...")
+	n = 10
+	fig = plt.figure(figsize = [10, 5])
+	ax = fig.add_axes([0.1,0.2,0.85,0.7]) 
+	# Group by name, filter top 10 and sort, plot Name vs. messages
+	pipeline = [
+		{"$group": {"_id": "$contact_id", "count": {"$sum": 1}}},
+		{"$sort" : {"count": -1}}
+	]
+	vals = list(messages.aggregate(pipeline))[0:n]
+	names = []
+	message_count = []
+	for val in vals:
+		# Get real name
+		contact = contacts.find({'id' : val['_id']})
+		name = list(contact)[0]['name']
+		names.append(name)
+		message_count.append(val['count'])
+	ax.bar(names, message_count)
+	ax.set_ylabel("Number of Messages")
+	ax.set_title("Top " + str(n) + " Most Messaged")
+	plt.setp(ax.get_xticklabels(), rotation=30, horizontalalignment='right')
+	plt.show()
 
-			# Get contact name
-			word_counts = {}
-			my_count = 0
-			friend_count = 0 
-
-			# Process sent messages
-			message_doc = nlp(sent_messages_joined)
-			# Remove all punctuation
-			for token in message_doc:
-				word = str(token.lemma_).lower()
-				# Ignore stopwords and punctuations and pronouns and short words (2 or less letters)
-				if (not token.is_stop) and (not token.is_punct) and (len(token) > 2):
-					my_count += 1
-					if word in word_counts.keys():
-						word_counts.update({word:[word_counts[word][0]+1, word_counts[word][1]]})
-					else:
-						word_counts[word] = [1,0]
-
-			# Process rcvd messages
-			message_doc = nlp(rcvd_messages_joined)
-			# Remove all punctuation
-			for token in message_doc:
-				word = str(token.lemma_).lower()
-				# Ignore stopwords and punctuations and pronouns and short words (2 or less letters)
-				if (not token.is_stop) and (not token.is_punct) and (len(token) > 2):
-					# Left is me, right is converser
-					friend_count += 1
-					if word in word_counts.keys():
-						word_counts.update({word:[word_counts[word][0], word_counts[word][1] + 1]})
-					else:
-						word_counts[word] = [0,1]
-			
-			words_data = pd.DataFrame.from_dict(word_counts,orient='index')
-			words_data = words_data.reset_index()
-			words_data.columns = ['word','me', 'friend']
-			words_data['my_norm'] = words_data['me']/my_count*1000
-			words_data['friend_norm'] = words_data['friend']/friend_count*1000
-			words_data['my_prop'] = words_data['my_norm']/(words_data['my_norm']+words_data['friend_norm'])
-			words_data['prop_bin'] = np.floor(words_data['my_prop']*10)
-			# Filter
-			words_data = words_data[(words_data['friend_norm'] > 1) | (words_data['my_norm'] > 1)]
-			words_data['total'] = words_data['me']+words_data['friend']
-			words_data.sort_values(by = ['total'], ascending = [False], inplace=True)
-			# Visual
-			summ = pd.DataFrame()
-			for i in range(10):
-				summ[str(i)] = words_data[words_data['prop_bin']==i]['word'].reset_index().head(10)['word']
-
-			bins = []
-			for i in range(10):
-				bins.append(','.join(word for word in words_data[words_data['prop_bin']==i]['word'].reset_index().head(5)['word'].tolist()))
-			summ_df = pd.DataFrame(bins, columns = ['Words'])
-			summ_df['Word Spectrum'] = pd.Series([i for i in range(10)])
-			summ_df.set_index('Words', inplace = True)
-			fig = plt.figure(figsize = (13,5))
-			ax = fig.add_axes([0.22	,0.1,0.85,0.7]) 
-			sns.heatmap(summ_df)
-			plt.show()
-	    
-	# Peak times
-	def message_hours():
-		print("Getting your message times...")
-		pipeline = [
-			{"$match" : {"sender_name" : "Frank Long"}},
-			{"$group": {"_id": "$hour", "count": {"$sum": 1}}},
-			{"$sort" : {"_id": 1}}
-		]
-		vals = list(messages.aggregate(pipeline))
-		hours = range(24)
-		message_count = []
-		for val in vals:
-			message_count.append(val['count'])
-		total_messages = sum(message_count)
-		message_frac = [c/total_messages for c in message_count]
-		plt.figure()
-		plt.bar(hours, message_frac)
-		plt.ylabel("Proportion")
-		plt.xlabel("Hour")
-		plt.show()
-
-	def exit_program():
-	    exit()
-
-	# Main Menu Layout
-	menu = Tk()
-	menu.geometry("450x125")
-	menu.title("Messenger Analyzer")
-	# Labels
-	gen_lbl = Label(menu, text="General",font=("Arial Bold", 16))
-	gen_lbl.grid(column=0, row=0)
-	spec_lbl = Label(menu, text="Individual:",font=("Arial Bold", 16))
-	spec_lbl.grid(column=1, row=0)
-	# Top 10 Button
-	top10_btn = Button(menu, text="Top 10 Most Messaged", width = 20, command = top10)
-	top10_btn.grid(column = 0, row = 1)
-	# Message times button
-	hour_btn = Button(menu, text="Message Distribution by Hour", width = 20, command = message_hours	)
-	hour_btn.grid(column = 0, row = 3)
+def msgsvtime_all():
+	print("Getting messages over time...")
+	# Get messages sent
+	pipeline = [
+		{"$match" : {"sender_name" : MY_NAME}},
+		{"$group": {"_id": {"year":"$year","month":"$month"}, "count": {"$sum": 1}}},
+		{"$sort" : {"_id": 1}}
+	]
+	messages_sent = list(messages.aggregate(pipeline))
+	sent_dates = []
+	sent_counts = []
+	for val in messages_sent:
+		# Get real name
+		year = val['_id']['year']
+		month = val['_id']['month']
+		date = datetime.datetime(year, month, 1)
+		sent_dates.append(date)
+		sent_counts.append(val['count'])
 	
+	# Get messages received
+	pipeline = [
+		{"$match" : {"sender_name" : {'$ne': MY_NAME}}},
+		{"$group": {"_id": {"year":"$year","month":"$month"}, "count": {"$sum": 1}}},
+		{"$sort" : {"_id": 1}}
+	]
+	messages_rcvd = list(messages.aggregate(pipeline))
+	rcvd_dates = []
+	rcvd_counts = []
+	for val in messages_rcvd:
+		# Get real name
+		year = val['_id']['year']
+		month = val['_id']['month']
+		date = datetime.datetime(year, month, 1)
+		rcvd_dates.append(date)
+		rcvd_counts.append(val['count'])
 
-	# Person over time
-	msgsvtime_btn = Button(menu, text="Messages over time", width = 20, command = msgsvtime_contact)
-	msgsvtime_btn.grid(column = 1, row = 1)
-	# Get input name
-	name_field = Entry(menu)
-	name_field.grid(column =2 , row = 0)
-	name_field.focus_set()
-	# Total messages over time
-	msgsvtime_btn = Button(menu, text="Total Messages over Time", width = 20, command = msgsvtime_all)
-	msgsvtime_btn.grid(column = 0, row = 2)
-	# Word Spectrum
-	wordspec_btn = Button(menu, text="Word Spectrum", width = 20, command = word_spectrum)
-	wordspec_btn.grid(column = 1,row = 2)
-	# Exit button
-	exit_btn = Button(menu, text="Exit", width = 20, command = exit_program)
-	exit_btn.grid(column = 2, row = 4)
-	menu.mainloop()
+	plt.figure()
+	plt.plot(rcvd_dates, rcvd_counts, label = "Received")
+	plt.plot(sent_dates, sent_counts, label = "Sent")
+	plt.xlabel("Date")
+	plt.ylabel("Number of Messages")
+	plt.legend()
+	plt.title("Total Messages over Time")
+	plt.show()
+
+# In-depth analysis of an individual conversation
+# Word spectrum 
+# Curretly very slow.. consider sampling the conversation or explore other ways of processing
+def word_spectrum(name_field):
+	nlp = spacy.load('en_core_web_sm')
+	name_input = name_field.get()
+	contact = list(contacts.find({'name' : name_input}))
+	# Only plot if valid name
+	if len(contact) > 0:
+		print("Getting messages for " +  name_input + "...")
+		contact_id = contact[0]['id']
+		# Get messages sent
+		sent_query = {"contact_id":contact_id, "sender_name": MY_NAME, "type":"Generic", "content" : {"$exists":True}}
+		rcvd_query = {"contact_id":contact_id, "sender_name" : {"$ne": MY_NAME}, "type":"Generic", "content" : {"$exists":True}}
+		sent_messages = list(messages.find(sent_query))
+		rcvd_messages = list(messages.find(rcvd_query))
+		sent_messages_joined = ' '.join(map(lambda x: x['content'], sent_messages))
+		rcvd_messages_joined = ' '.join(map(lambda x: x['content'], rcvd_messages))
+
+		# Get contact name
+		word_counts = {}
+		my_count = 0
+		friend_count = 0 
+
+		# Process sent messages
+		message_doc = nlp(sent_messages_joined)
+		# Remove all punctuation
+		for token in message_doc:
+			word = str(token.lemma_).lower()
+			# Ignore stopwords and punctuations and pronouns and short words (2 or less letters)
+			if (not token.is_stop) and (not token.is_punct) and (len(token) > 2):
+				my_count += 1
+				if word in word_counts.keys():
+					word_counts.update({word:[word_counts[word][0]+1, word_counts[word][1]]})
+				else:
+					word_counts[word] = [1,0]
+
+		# Process rcvd messages
+		message_doc = nlp(rcvd_messages_joined)
+		# Remove all punctuation
+		for token in message_doc:
+			word = str(token.lemma_).lower()
+			# Ignore stopwords and punctuations and pronouns and short words (2 or less letters)
+			if (not token.is_stop) and (not token.is_punct) and (len(token) > 2):
+				# Left is me, right is converser
+				friend_count += 1
+				if word in word_counts.keys():
+					word_counts.update({word:[word_counts[word][0], word_counts[word][1] + 1]})
+				else:
+					word_counts[word] = [0,1]
+		
+		words_data = pd.DataFrame.from_dict(word_counts,orient='index')
+		words_data = words_data.reset_index()
+		words_data.columns = ['word','me', 'friend']
+		words_data['my_norm'] = words_data['me']/my_count*1000
+		words_data['friend_norm'] = words_data['friend']/friend_count*1000
+		words_data['my_prop'] = words_data['my_norm']/(words_data['my_norm']+words_data['friend_norm'])
+		words_data['prop_bin'] = np.floor(words_data['my_prop']*10)
+		# Filter
+		words_data = words_data[(words_data['friend_norm'] > 1) | (words_data['my_norm'] > 1)]
+		words_data['total'] = words_data['me']+words_data['friend']
+		words_data.sort_values(by = ['total'], ascending = [False], inplace=True)
+		# Visual
+		summ = pd.DataFrame()
+		for i in range(10):
+			summ[str(i)] = words_data[words_data['prop_bin']==i]['word'].reset_index().head(10)['word']
+
+		bins = []
+		for i in range(10):
+			bins.append(','.join(word for word in words_data[words_data['prop_bin']==i]['word'].reset_index().head(5)['word'].tolist()))
+		summ_df = pd.DataFrame(bins, columns = ['Words'])
+		summ_df['Word Spectrum'] = pd.Series([i for i in range(10)])
+		summ_df.set_index('Words', inplace = True)
+		fig = plt.figure(figsize = (13,5))
+		ax = fig.add_axes([0.22	,0.1,0.85,0.7]) 
+		sns.heatmap(summ_df)
+		plt.show()
+	
+# Peak times
+def message_hours():
+	print("Getting your message times...")
+	pipeline = [
+		{"$match" : {"sender_name" : MY_NAME}},
+		{"$group": {"_id": "$hour", "count": {"$sum": 1}}},
+		{"$sort" : {"_id": 1}}
+	]
+	vals = list(messages.aggregate(pipeline))
+	hours = range(24)
+	message_count = []
+	for val in vals:
+		message_count.append(val['count'])
+	total_messages = sum(message_count)
+	message_frac = [c/total_messages for c in message_count]
+	plt.figure()
+	plt.bar(hours, message_frac)
+	plt.ylabel("Proportion")
+	plt.xlabel("Hour")
+	plt.show()
+
+def exit_program():
+	exit()
 
 def test():
 	client = pymongo.MongoClient()
@@ -414,8 +386,8 @@ def test():
 		print("Getting messages for " +  name_input + "...")
 		contact_id = contact[0]['id']
 		# Get messages sent
-		sent_query = {"contact_id":contact_id, "sender_name":"Frank Long", "type":"Generic", "content" : {"$exists":True}}
-		rcvd_query = {"contact_id":contact_id, "sender_name" : {"$ne":"Frank Long"}, "type":"Generic", "content" : {"$exists":True}}
+		sent_query = {"contact_id":contact_id, "sender_name": MY_NAME, "type":"Generic", "content" : {"$exists":True}}
+		rcvd_query = {"contact_id":contact_id, "sender_name" : {"$ne": MY_NAME}, "type":"Generic", "content" : {"$exists":True}}
 		sent_messages = list(messages.find(sent_query))
 		rcvd_messages = list(messages.find(rcvd_query))
 
@@ -484,10 +456,243 @@ def test():
 		sns.heatmap(summ_df)
 		plt.show()
 
+def main():
+	OUTPUT_PATH = Path(__file__).parent
+	ASSETS_PATH = OUTPUT_PATH / Path("./assets")
+	def relative_to_assets(path: str) -> Path:
+		return ASSETS_PATH / Path(path)
+
+	# Set up window
+	# TODO: scale for smaller resolutions
+	window = Tk()
+	window.geometry("1276x822")
+	window.configure(bg = "#FFFFFF")
+	window.title("Messenger Analyzer")
+
+	canvas = Canvas(
+		window,
+		bg = "#FFFFFF",
+		height = 822,
+		width = 1276,
+		bd = 0,
+		highlightthickness = 0,
+		relief = "ridge"
+	)
+
+	# Title
+	canvas.place(x = 0, y = 0)
+	canvas.create_text(
+		317.0,
+		28.0,
+		anchor="nw",
+		text="Messenger Analyzer",
+		fill="#0084FF",
+		font=TkFont.Font(family="Helvetica",size=48,weight="bold")
+	)
+
+	# Loading/Updating database
+	canvas.create_text(
+		100.0,
+		147.0,
+		anchor="nw",
+		text="Filepath",
+		fill="#0084FF",
+		font=TkFont.Font(family="Helvetica",size=24,weight="bold")
+	)
+	entry_image_1 = PhotoImage(
+		file=relative_to_assets("entry_1.png"))
+	entry_bg_1 = canvas.create_image(
+		727.5000305175781,
+		170.5,
+		image=entry_image_1
+	)
+	fpath_field = Entry(
+		bd=0,
+		bg="#FFFFFF",
+		highlightthickness=0
+	)
+	fpath_field.place(
+		x=265.5,
+		y=154.0,
+		width=924.0000610351562,
+		height=35.0
+	)
+	load_button_image = PhotoImage(
+		file=relative_to_assets("button_3.png"))
+	load_button = Button(
+		image=load_button_image,
+		borderwidth=0,
+		highlightthickness=0,
+		command=lambda: load(fpath_field),
+		relief="flat"
+	)
+	load_button.place(
+		x=259.0,
+		y=208.0,
+		width=210.0,
+		height=43.0
+	)
+
+	update_button_image = PhotoImage(
+		file=relative_to_assets("button_4.png"))
+	update_button = Button(
+		image=update_button_image,
+		borderwidth=0,
+		highlightthickness=0,
+		command=lambda: update(fpath_field),
+		relief="flat"
+	)
+	update_button.place(
+		x=518.0,
+		y=208.0,
+		width=210.0,
+		height=43.0
+	)
+
+	# Visualizations for all coversations (General)
+	canvas.create_text(
+		101.0,
+		284.0,
+		anchor="nw",
+		text="General",
+		fill="#0084FF",
+		font=TkFont.Font(family="Helvetica",size=24,weight="bold")
+	)
+	msgsvtimeall_button_image = PhotoImage(
+		file=relative_to_assets("button_1.png"))
+	msgsvtimeall_button = Button(
+		image=msgsvtimeall_button_image,
+		borderwidth=0,
+		highlightthickness=0,
+		command=msgsvtime_all,
+		relief="flat"
+	)
+	msgsvtimeall_button.place(
+		x=434.0,
+		y=346.0,
+		width=210.0,
+		height=93.0
+	)
+
+	top10_button_image = PhotoImage(
+		file=relative_to_assets("button_2.png"))
+	top10_button = Button(
+		image=top10_button_image,
+		borderwidth=0,
+		highlightthickness=0,
+		command=top10,
+		relief="flat"
+	)
+	top10_button.place(
+		x=101.0,
+		y=346.0,
+		width=210.0,
+		height=93.0
+	)
+	hour_button_image = PhotoImage(
+		file=relative_to_assets("button_8.png"))
+	hour_button = Button(
+		image=hour_button_image,
+		borderwidth=0,
+		highlightthickness=0,
+		command=message_hours,
+		relief="flat"
+	)
+	hour_button.place(
+		x=767.0,
+		y=346.0,
+		width=210.0,
+		height=93.0
+	)
+
+	# Visualizations for individual conversations
+	canvas.create_text(
+		100.0,
+		498.0,
+		anchor="nw",
+		text="Individual",
+		fill="#0084FF",
+		font=TkFont.Font(family="Helvetica",size=24,weight="bold")
+	)
+	canvas.create_text(
+		101.0,
+		547.0,
+		anchor="nw",
+		text="Name",
+		fill="#0084FF",
+		font=TkFont.Font(family="Helvetica",size=18,weight="bold")
+	)
+	entry_image_2 = PhotoImage(
+		file=relative_to_assets("entry_2.png"))
+	entry_bg_2 = canvas.create_image(
+		388.0,
+		561.0,
+		image=entry_image_2
+	)
+	name_field = Entry(
+		bd=0,
+		bg="#FFFFFF",
+		highlightthickness=0
+	)
+	name_field.place(
+		x=193.0,
+		y=548.0,
+		width=390.0,
+		height=26.0
+	)
+	msgsvtimeind_button_image = PhotoImage(
+		file=relative_to_assets("button_6.png"))
+	msgsvtimeind_button = Button(
+		image=msgsvtimeind_button_image,
+		borderwidth=0,
+		highlightthickness=0,
+		command=lambda: msgsvtime_contact(name_field),
+		relief="flat"
+	)
+	msgsvtimeind_button.place(
+		x=100.0,
+		y=633.0,
+		width=210.0,
+		height=93.0
+	)
+
+	wordspec_button_image = PhotoImage(
+		file=relative_to_assets("button_7.png"))
+	wordspec_button = Button(
+		image=wordspec_button_image,
+		borderwidth=0,
+		highlightthickness=0,
+		command=lambda: word_spectrum(name_field),
+		relief="flat"
+	)
+	wordspec_button.place(
+		x=433.0,
+		y=633.0,
+		width=210.0,
+		height=93.0
+	)
+	
+	# Exit program buttom
+	exit_button_image = PhotoImage(
+		file=relative_to_assets("button_5.png"))
+	exit_button = Button(
+		image=exit_button_image,
+		borderwidth=0,
+		highlightthickness=0,
+		command=exit_program,
+		relief="flat"
+	)
+	exit_button.place(
+		x=1043.0,
+		y=755.0,
+		width=210.0,
+		height=43.0
+	)	
+	window.resizable(False, False)
+	window.mainloop()
+
+
 if __name__ == "__main__":
-	#load()
 	#getLastMessage()
-	#update()
-	#main()
-	analyze()
 	#test()
+	main()

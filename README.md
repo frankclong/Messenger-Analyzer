@@ -3,13 +3,15 @@ Parses JSON files that hold Facebook messenger data and allows user to generate 
 
 ## Usage
 
-Make sure to have Python 3 installed.
-
-Pass the path to your Facebook messages/inbox directory of data as a command line argument.
+Make sure to have Python 3 installed and required libraries.
 
 ```bash
-python main.py "path/to/json/facebook/messages/inbox/"
+python main.py
 ```
+
+![alt text](./img/menu.JPG)
+
+When running for the first time, enter the path to your Facebook messages/inbox directory of data and click "Load". Use the "Update" button when you wish to add additional data file in the future. 
 
 ## Required Libraries
 * pandas
@@ -83,3 +85,9 @@ For a specific contact, identify which words you are more likely to type opposed
 <br>
 
 ![alt text](./img/word_spectrum.JPG)
+
+## Next Steps/Features
+* Date range filter
+* Database cleanup option - in case the sample files/messages are loaded multiple times, need a function to clean it up or a way to prevent this
+* More graphs...
+* Optimize word spectrum - consider analyzing a sample of the conversation instead of all of it?
