@@ -56,13 +56,30 @@ Launches the tkinter GUI to allow the user to select various visualizations. Cur
 
 ## Available Visualizations
 Note that date filters will be added soon. Sample images of the visualizations to come as well!
-### Top 10 Most Messaged
+### Top 10 (n) Most Messaged
 Identifies who you have exchanged the most messages with ever! WARNING: Results may surprise you
+<br>
+
+![alt text](./img/topn.png)
+
 ### Messages over time (sent and received)
 Shows activity over time. May be able to identify cyclical patterns or trends. Can also see the effect of certain effects on your messaging habits (e.g. Do I talk to more people during a global pandemic?)
+<br>
+
+![alt text](./img/msg_v_time.jpg)
+
 ### Messages over time with a specific contact (sent and received)
 Similar to above. 
+<br>
+
+![alt text](./img/msg_v_time_contact.png)
 ### Hourly Distribution of sent messages
 Provides information on when you are most likely to reply. Can be used to identify unhealthy patterns or habits. 
+<br>
+
+![alt text](./img/msg_dist.jpg)
 ### Word spectrum
 For a specific contact, identify which words you are more likely to type opposed to your contact. 
+<br>
+
+![alt text](./img/word_spectrum.jpg)

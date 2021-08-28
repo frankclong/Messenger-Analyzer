@@ -9,13 +9,12 @@ import matplotlib.pyplot as plt
 from tkinter import *
 from pandas.plotting import register_matplotlib_converters
 from contact import Contact
-import string
-import math
 import seaborn as sns
 import numpy as np
 import spacy
 import pymongo
 import time
+import glob
 _ROOT_PATH_ARG = 1
 
 # python main.py ./messages/inbox
@@ -34,41 +33,48 @@ def load():
 	# Loop through all folders
 	for filename in filenames:
 		# Name of file is "message_1.json"
-		with open(os.path.join(rootpath, filename) + "/message_1.json") as f:
-			data = json.load(f)
+		# As of recent update, larger datasets are split into multiple files
+		filepath = os.path.join(rootpath, filename)
+		message_files = glob.glob(os.path.join(filepath, "message_*.json"))
+
+		for message_file in message_files:
+			#basename = os.path.basename(message_file)
+			with open(message_file) as f:
+				data = json.load(f)
+		
 			# Only analyze direct messages and if more than 100 messages sent
-		if data["thread_type"] == "Regular" and len(data["messages"]) > 100:
-			# Add contact to collection if does not exist
-			print(filename.lower())
-			contact_id = filename.lower()
-			contact_name = data["title"]
-			
-			if len(list(contacts.find({'name' : contact_name}))) == 0:
-				print("Adding ", contact_name)
-				doc = {
-					"name" : contact_name,
-					"id" : filename.lower() 
-				}
-				contacts.insert_one(doc)
-			
-			#indconv = db[contact_id]
-			#indconv.drop()
-			#indconv.insert_many(data['messages'])
+			if data["thread_type"] == "Regular" and len(data["messages"]) > 100:
+				# Add contact to collection if does not exist
+				print(filename.lower())
+				contact_id = filename.lower()
+				contact_name = data["title"]
+				
+				if len(list(contacts.find({'name' : contact_name}))) == 0:
+					print("Adding ", contact_name)
+					doc = {
+						"name" : contact_name,
+						"id" : filename.lower() 
+					}
+					contacts.insert_one(doc)
+				
+				#indconv = db[contact_id]
+				#indconv.drop()
+				#indconv.insert_many(data['messages'])
 
-			messages_list = data['messages']
+				messages_list = data['messages']
 
-			for message_obj in messages_list:
-				# Check if content exists (not vid or photo or shared links)
-				# Note that some shared links include message
-				message_obj['contact_id'] = contact_id
-				ts= message_obj["timestamp_ms"]
-				dt_obj = datetime.datetime.fromtimestamp(int(ts/1000))
-				message_obj['datetime'] = dt_obj
-				message_obj['year'] = dt_obj.year
-				message_obj['month'] = dt_obj.month
-				message_obj['day'] = dt_obj.day
-				message_obj['hour'] = dt_obj.hour
-			messages.insert_many(messages_list)
+				for message_obj in messages_list:
+					# Check if content exists (not vid or photo or shared links)
+					# Note that some shared links include message
+					message_obj['contact_id'] = contact_id
+					ts= message_obj["timestamp_ms"]
+					dt_obj = datetime.datetime.fromtimestamp(int(ts/1000))
+					message_obj['datetime'] = dt_obj
+					message_obj['year'] = dt_obj.year
+					message_obj['month'] = dt_obj.month
+					message_obj['day'] = dt_obj.day
+					message_obj['hour'] = dt_obj.hour
+				messages.insert_many(messages_list)
 
 def getLastMessage():
 	# Connect to database
@@ -91,103 +97,41 @@ def update():
 	# Loop through all folders
 	for filename in filenames:
 		# Name of file is "message_1.json"
-		with open(os.path.join(rootpath, filename) + "/message_1.json") as f:
-			data = json.load(f)
-			# Only analyze direct messages and if more than 100 messages sent
-		if data["thread_type"] == "Regular":
-			# Add contact to collection if does not exist
-			print(filename.lower())
-			contact_id = filename.lower()
-			contact_name = data["title"]
+		# As of recent update, larger datasets are split into multiple files
+		filepath = os.path.join(rootpath, filename)
+		message_files = glob.glob(os.path.join(filepath, "message_*.json"))
+
+		for message_file in message_files:
+			#basename = os.path.basename(message_file)
+			with open(message_file) as f:
+				data = json.load(f)
 			
-			if len(list(contacts.find({'name' : contact_name}))) == 0:
-				print("Adding new contact ", contact_name)
-				doc = {
-					"name" : contact_name,
-					"id" : filename.lower() 
-				}
-				contacts.insert_one(doc)
-			else:
-				print("Updating ", contact_name)
-			messages_list = data['messages']
-			for message_obj in messages_list:
-				message_obj['contact_id'] = contact_id
-				ts= message_obj["timestamp_ms"]
-				dt_obj = datetime.datetime.fromtimestamp(int(ts/1000))
-				message_obj['datetime'] = dt_obj
-				message_obj['year'] = dt_obj.year
-				message_obj['month'] = dt_obj.month
-				message_obj['day'] = dt_obj.day
-				message_obj['hour'] = dt_obj.hour
-			messages.insert_many(messages_list)
-
-# Load data 
-def main():
-	rootpath = sys.argv[_ROOT_PATH_ARG]
-	print(rootpath)
-	filenames = os.listdir(rootpath) # get all files' and folders' names in the root directory
-	# Arrays that hold all contact data
-	name_list=[]
-
-	# [Name][Year][Month][Day][Messages sent, messages received, words sent, words received]
-	# Print to CSV: Name, Year, Month, Day, Messages sent, Messages received, Words Sent, Words Received
-	c_num = -1
-	# Loop through all folders
-	for filename in filenames:
-		# Name of file is "message_1.json"
-		with open(os.path.join(rootpath, filename) + "/message_1.json") as f:
-		  data = json.load(f)
-
-		# Only analyze direct messages and if more than 100 messages sent
-		if data["thread_type"] == "Regular" and len(data["messages"]) > 100:
-			# 'title' is the name of contact
-			contact_name = data["title"]
-			name_list.append(Contact(contact_name, filename))
-			c_num = c_num+ 1
-			my_contact=name_list[c_num]
-
-			for i in data["messages"]:
-				# Check if content exists (not vid or photo or shared links)
-				# Note that some shared links include message
-				if i.get("content") and i["type"] == 'Generic':
-					# Count number of words
-					num_words = 0
-					message_text = i["content"] # Message 
-					words = message_text.split() # Each "word" in array
-					for substr in words:
-						if re.search("[a-zA-Z0-9]", substr): # Count as "word" if contains letter or number
-							num_words += 1 
-
-					sender = i["sender_name"]
-					ts= i["timestamp_ms"]
+			if data["thread_type"] == "Regular":
+				# Add contact to collection if does not exist
+				print(filename.lower())
+				contact_id = filename.lower()
+				contact_name = data["title"]
+				
+				if len(list(contacts.find({'name' : contact_name}))) == 0:
+					print("Adding new contact ", contact_name)
+					doc = {
+						"name" : contact_name,
+						"id" : filename.lower() 
+					}
+					contacts.insert_one(doc)
+				else:
+					print("Updating ", contact_name)
+				messages_list = data['messages']
+				for message_obj in messages_list:
+					message_obj['contact_id'] = contact_id
+					ts= message_obj["timestamp_ms"]
 					dt_obj = datetime.datetime.fromtimestamp(int(ts/1000))
-					
-					if sender == my_contact.name:
-						my_contact.add_rcvd_msg_date(dt_obj, num_words)
-
-					else:
-						my_contact.add_sent_msg_date(dt_obj, num_words)
-	
-	# Write data to a CSV
-	with open('MessageData'+'.csv','w', newline='', encoding='utf-8-sig') as csvFile:
-		writer = csv.writer(csvFile)
-		hdr = ["Name","Year","Month","Day","Hour","Received Messages", "Sent Messages","Received Words","Sent Words"]
-		writer.writerow(hdr)
-		for name in name_list:
-			msg_data = name.get_dates()
-			msg_counts = name.get_counts()
-			for entry in msg_data:
-				pos = msg_data.index(entry)
-				row = [name.name,entry.year,entry.month,entry.day,entry.hour, msg_counts[pos][0], msg_counts[pos][1],msg_counts[pos][2],msg_counts[pos][3]]
-				writer.writerow(row)
-
-	with open('Contact_Folders'+'.csv','w', newline='', encoding='utf-8-sig') as refFile:
-		writer = csv.writer(refFile)
-		hdr = ["Name","Folder"]
-		writer.writerow(hdr)
-		for name in name_list:
-			row = [name.name, name.folder_name]
-			writer.writerow(row)
+					message_obj['datetime'] = dt_obj
+					message_obj['year'] = dt_obj.year
+					message_obj['month'] = dt_obj.month
+					message_obj['day'] = dt_obj.day
+					message_obj['hour'] = dt_obj.hour
+				messages.insert_many(messages_list)
 
 def analyze():
 	client = pymongo.MongoClient()
@@ -199,16 +143,51 @@ def analyze():
 	def msgsvtime_contact():
 		# Get contact name
 		name_input = name_field.get()
+		contact = list(contacts.find({'name' : name_input}))
 		# Only plot if valid name
-		if name_input in df['Name'].values:
+		if len(contact) > 0:
 			print("Getting messages for " +  name_input + "...")
-			# Filter
-			filtered_df = df[df['Name'] == name_input]
-			# Fill missing months with 0
-			filtered_df = filtered_df.set_index('Date').resample('MS').sum()
+			contact_id = contact[0]['id']
+			# Fill missing months with 0 TODO: how to do this in mongo?
+			# Get messages sent
+			pipeline = [
+				{"$match" : {"contact_id":contact_id,"sender_name" : "Frank Long"}},
+				{"$group": {"_id": {"year":"$year","month":"$month"}, "count": {"$sum": 1}}},
+				{"$sort" : {"_id": 1}}
+			]
+			messages_sent = list(messages.aggregate(pipeline))
+			sent_dates = []
+			sent_counts = []
+			for val in messages_sent:
+				# Get real name
+				year = val['_id']['year']
+				month = val['_id']['month']
+				date = datetime.datetime(year, month, 1)
+				sent_dates.append(date)
+				sent_counts.append(val['count'])
+			
+			# Get messages received
+			pipeline = [
+				{"$match" : {"contact_id":contact_id, "sender_name" : {'$ne':"Frank Long"}}},
+				{"$group": {"_id": {"year":"$year","month":"$month"}, "count": {"$sum": 1}}},
+				{"$sort" : {"_id": 1}}
+			]
+			messages_rcvd = list(messages.aggregate(pipeline))
+			rcvd_dates = []
+			rcvd_counts = []
+			for val in messages_rcvd:
+				# Get real name
+				year = val['_id']['year']
+				month = val['_id']['month']
+				date = datetime.datetime(year, month, 1)
+				rcvd_dates.append(date)
+				rcvd_counts.append(val['count'])
+
 			plt.figure()
-			plt.plot(filtered_df.index, filtered_df['Received Messages'], label = "Received")
-			plt.plot(filtered_df.index, filtered_df['Sent Messages'], label = "Sent")
+			plt.plot(rcvd_dates, rcvd_counts, label = "Received")
+			plt.plot(sent_dates, sent_counts, label = "Sent")
+			plt.xlabel("Date")
+			plt.ylabel("Number of Messages")
 			plt.legend()
 			plt.title(name_input)
 			plt.show()
@@ -218,7 +197,7 @@ def analyze():
 	def top10():
 		# Top 10 (or n)
 		print("Getting top 10 most messaged...")
-		n = 10
+		n = 20
 		fig = plt.figure(figsize = [10, 5])
 		ax = fig.add_axes([0.1,0.2,0.85,0.7]) 
 		# Group by name, filter top 10 and sort, plot Name vs. messages
@@ -226,7 +205,7 @@ def analyze():
 			{"$group": {"_id": "$contact_id", "count": {"$sum": 1}}},
 			{"$sort" : {"count": -1}}
 		]
-		vals = list(messages.aggregate(pipeline))[0:10]
+		vals = list(messages.aggregate(pipeline))[0:n]
 		names = []
 		message_count = []
 		for val in vals:
@@ -280,83 +259,89 @@ def analyze():
 		plt.figure()
 		plt.plot(rcvd_dates, rcvd_counts, label = "Received")
 		plt.plot(sent_dates, sent_counts, label = "Sent")
+		plt.xlabel("Date")
+		plt.ylabel("Number of Messages")
 		plt.legend()
+		plt.title("Total Messages over Time")
 		plt.show()
 
 	# In-depth analysis of an individual conversation
-	# May need to then save all message info into contact class? 
 	# Word spectrum 
+	# Curretly very slow.. consider sampling the conversation or explore other ways of processing
 	def word_spectrum():
-		# Get contact name
 		nlp = spacy.load('en_core_web_sm')
-		rootpath = sys.argv[_ROOT_PATH_ARG]
 		name_input = name_field.get()
-		folder_name = folders.loc[name_input]['Folder']
-		print("Getting word spectrum for " + name_input)
-		with open(rootpath + folder_name + "/message_1.json") as f:
-		    data = json.load(f)
+		contact = list(contacts.find({'name' : name_input}))
+		# Only plot if valid name
+		if len(contact) > 0:
+			print("Getting messages for " +  name_input + "...")
+			contact_id = contact[0]['id']
+			# Get messages sent
+			sent_query = {"contact_id":contact_id, "sender_name":"Frank Long", "type":"Generic", "content" : {"$exists":True}}
+			rcvd_query = {"contact_id":contact_id, "sender_name" : {"$ne":"Frank Long"}, "type":"Generic", "content" : {"$exists":True}}
+			sent_messages = list(messages.find(sent_query))
+			rcvd_messages = list(messages.find(rcvd_query))
+			sent_messages_joined = ' '.join(map(lambda x: x['content'], sent_messages))
+			rcvd_messages_joined = ' '.join(map(lambda x: x['content'], rcvd_messages))
 
-		word_counts = {}
-		my_count = 0
-		friend_count = 0 
+			# Get contact name
+			word_counts = {}
+			my_count = 0
+			friend_count = 0 
 
-		# Can I add some kind of % complete indicator?
-		# Only analyze direct messages and if more than 100 messages sent
-		for i in data["messages"]:
-		    # Check if content exists (not vid or photo or shared links)
-		    # Note that some shared links include message
-		    if i.get("content") and i["type"] == 'Generic':
-		        # Count number of words
-		        message_text = i["content"] # Message 
-		        message_doc = nlp(message_text)
-		        sender = i["sender_name"]
-		        # Remove all punctuation
-		        for token in message_doc:
-		            word = str(token.lemma_).lower()
-		            #print(word, token.is_stop, token.is_punct)
+			# Process sent messages
+			message_doc = nlp(sent_messages_joined)
+			# Remove all punctuation
+			for token in message_doc:
+				word = str(token.lemma_).lower()
+				# Ignore stopwords and punctuations and pronouns and short words (2 or less letters)
+				if (not token.is_stop) and (not token.is_punct) and (len(token) > 2):
+					my_count += 1
+					if word in word_counts.keys():
+						word_counts.update({word:[word_counts[word][0]+1, word_counts[word][1]]})
+					else:
+						word_counts[word] = [1,0]
 
-		            # Ignore stopwords and punctuations and pronouns
-		            if (not token.is_stop) and (not token.is_punct):
-		                # Left is me, right is converser
-		                if sender == name_input:
-		                    friend_count += 1
-		                    if word in word_counts.keys():
-		                        word_counts.update({word:[word_counts[word][0], word_counts[word][1] + 1]})
-		                    else:
-		                        word_counts[word] = [0,1]
-		                else:
-		                    my_count += 1
-		                    if word in word_counts.keys():
-		                        word_counts.update({word:[word_counts[word][0]+1, word_counts[word][1]]})
-		                    else:
-		                        word_counts[word] = [1,0]
+			# Process rcvd messages
+			message_doc = nlp(rcvd_messages_joined)
+			# Remove all punctuation
+			for token in message_doc:
+				word = str(token.lemma_).lower()
+				# Ignore stopwords and punctuations and pronouns and short words (2 or less letters)
+				if (not token.is_stop) and (not token.is_punct) and (len(token) > 2):
+					# Left is me, right is converser
+					friend_count += 1
+					if word in word_counts.keys():
+						word_counts.update({word:[word_counts[word][0], word_counts[word][1] + 1]})
+					else:
+						word_counts[word] = [0,1]
+			
+			words_data = pd.DataFrame.from_dict(word_counts,orient='index')
+			words_data = words_data.reset_index()
+			words_data.columns = ['word','me', 'friend']
+			words_data['my_norm'] = words_data['me']/my_count*1000
+			words_data['friend_norm'] = words_data['friend']/friend_count*1000
+			words_data['my_prop'] = words_data['my_norm']/(words_data['my_norm']+words_data['friend_norm'])
+			words_data['prop_bin'] = np.floor(words_data['my_prop']*10)
+			# Filter
+			words_data = words_data[(words_data['friend_norm'] > 1) | (words_data['my_norm'] > 1)]
+			words_data['total'] = words_data['me']+words_data['friend']
+			words_data.sort_values(by = ['total'], ascending = [False], inplace=True)
+			# Visual
+			summ = pd.DataFrame()
+			for i in range(10):
+				summ[str(i)] = words_data[words_data['prop_bin']==i]['word'].reset_index().head(10)['word']
 
-		words_data = pd.DataFrame.from_dict(word_counts,orient='index')
-		words_data = words_data.reset_index()
-		words_data.columns = ['word','me', 'friend']
-		words_data['my_norm'] = words_data['me']/my_count*1000
-		words_data['friend_norm'] = words_data['friend']/friend_count*1000
-		words_data['my_prop'] = words_data['my_norm']/(words_data['my_norm']+words_data['friend_norm'])
-		words_data['prop_bin'] = np.floor(words_data['my_prop']*10)
-		# Filter
-		words_data = words_data[(words_data['friend_norm'] > 1) | (words_data['my_norm'] > 1)]
-		words_data['total'] = words_data['me']+words_data['friend']
-		words_data.sort_values(by = ['total'], ascending = [False], inplace=True)
-		# Visual
-		summ = pd.DataFrame()
-		for i in range(10):
-		    summ[str(i)] = words_data[words_data['prop_bin']==i]['word'].reset_index().head(10)['word']
-
-		bins = []
-		for i in range(10):
-		    bins.append(','.join(word for word in words_data[words_data['prop_bin']==i]['word'].reset_index().head(5)['word'].tolist()))
-		summ_df = pd.DataFrame(bins, columns = ['Words'])
-		summ_df['Val'] = pd.Series([i for i in range(10)])
-		summ_df.set_index('Words', inplace = True)
-		fig = plt.figure(figsize = (13,5))
-		ax = fig.add_axes([0.22	,0.1,0.85,0.7]) 
-		sns.heatmap(summ_df)
-		plt.show()
+			bins = []
+			for i in range(10):
+				bins.append(','.join(word for word in words_data[words_data['prop_bin']==i]['word'].reset_index().head(5)['word'].tolist()))
+			summ_df = pd.DataFrame(bins, columns = ['Words'])
+			summ_df['Word Spectrum'] = pd.Series([i for i in range(10)])
+			summ_df.set_index('Words', inplace = True)
+			fig = plt.figure(figsize = (13,5))
+			ax = fig.add_axes([0.22	,0.1,0.85,0.7]) 
+			sns.heatmap(summ_df)
+			plt.show()
 	    
 	# Peak times
 	def message_hours():
@@ -375,19 +360,12 @@ def analyze():
 		message_frac = [c/total_messages for c in message_count]
 		plt.figure()
 		plt.bar(hours, message_frac)
+		plt.ylabel("Proportion")
+		plt.xlabel("Hour")
 		plt.show()
 
 	def exit_program():
 	    exit()
-
-	# Load data to DataFrame for further analysis
-	df = pd.read_csv('MessageData.csv')
-	# Create date column
-	df['Date'] = pd.to_datetime(df[['Year', 'Month']].assign(DAY=1))
-	df['Total Messages'] = df['Received Messages'] + df['Sent Messages']
-	df['Total Words'] = df['Received Words'] + df['Sent Words']
-	folders = pd.read_csv('Contact_Folders.csv', index_col = 'Name')
-	register_matplotlib_converters()
 
 	# Main Menu Layout
 	menu = Tk()
@@ -429,45 +407,82 @@ def test():
 	db = client['messenger-analyzer']
 	messages = db['messages']
 	contacts = db['contacts']
+	name_input = 'Daniel Lin'
+	contact = list(contacts.find({'name' : name_input}))
+	# Only plot if valid name
+	if len(contact) > 0:
+		print("Getting messages for " +  name_input + "...")
+		contact_id = contact[0]['id']
+		# Get messages sent
+		sent_query = {"contact_id":contact_id, "sender_name":"Frank Long", "type":"Generic", "content" : {"$exists":True}}
+		rcvd_query = {"contact_id":contact_id, "sender_name" : {"$ne":"Frank Long"}, "type":"Generic", "content" : {"$exists":True}}
+		sent_messages = list(messages.find(sent_query))
+		rcvd_messages = list(messages.find(rcvd_query))
 
-	# Get messages sent
-	pipeline = [
-		{"$match" : {"sender_name" : "Frank Long"}},
-		{"$group": {"_id": {"year":"$year","month":"$month"}, "count": {"$sum": 1}}},
-		{"$sort" : {"_id": 1}}
-	]
-	messages_sent = list(messages.aggregate(pipeline))
-	sent_dates = []
-	sent_counts = []
-	for val in messages_sent:
-		# Get real name
-		year = val['_id']['year']
-		month = val['_id']['month']
-		date = datetime.datetime(year, month, 1)
-		sent_dates.append(date)
-		sent_counts.append(val['count'])
-	
-	# Get messages received
-	pipeline = [
-		{"$match" : {"sender_name" : {'$ne':"Frank Long"}}},
-		{"$group": {"_id": {"year":"$year","month":"$month"}, "count": {"$sum": 1}}},
-		{"$sort" : {"_id": 1}}
-	]
-	messages_rcvd = list(messages.aggregate(pipeline))
-	rcvd_dates = []
-	rcvd_counts = []
-	for val in messages_rcvd:
-		# Get real name
-		year = val['_id']['year']
-		month = val['_id']['month']
-		date = datetime.datetime(year, month, 1)
-		rcvd_dates.append(date)
-		rcvd_counts.append(val['count'])
+		sent_messages_joined = ' '.join(map(lambda x: x['content'], sent_messages))
+		rcvd_messages_joined = ' '.join(map(lambda x: x['content'], rcvd_messages))
 
-	plt.figure()
-	plt.plot(sent_dates, sent_counts)
-	plt.plot(rcvd_dates, rcvd_counts)
-	plt.show()
+		# Get contact name
+		nlp = spacy.load('en_core_web_sm')
+		word_counts = {}
+		my_count = 0
+		friend_count = 0 
+
+		# Process sent messages
+		message_doc = nlp(sent_messages_joined)
+		# Remove all punctuation
+		for token in message_doc:
+			word = str(token.lemma_).lower()
+			# Ignore stopwords and punctuations and pronouns and short words (2 or less letters)
+			if (not token.is_stop) and (not token.is_punct) and (len(token) > 2):
+				my_count += 1
+				if word in word_counts.keys():
+					word_counts.update({word:[word_counts[word][0]+1, word_counts[word][1]]})
+				else:
+					word_counts[word] = [1,0]
+
+		# Process rcvd messages
+		message_doc = nlp(rcvd_messages_joined)
+		# Remove all punctuation
+		for token in message_doc:
+			word = str(token.lemma_).lower()
+			# Ignore stopwords and punctuations and pronouns and short words (2 or less letters)
+			if (not token.is_stop) and (not token.is_punct) and (len(token) > 2):
+				# Left is me, right is converser
+				friend_count += 1
+				if word in word_counts.keys():
+					word_counts.update({word:[word_counts[word][0], word_counts[word][1] + 1]})
+				else:
+					word_counts[word] = [0,1]
+
+
+		print("Processing words...")
+		words_data = pd.DataFrame.from_dict(word_counts,orient='index')
+		words_data = words_data.reset_index()
+		words_data.columns = ['word','me', 'friend']
+		words_data['my_norm'] = words_data['me']/my_count*1000
+		words_data['friend_norm'] = words_data['friend']/friend_count*1000
+		words_data['my_prop'] = words_data['my_norm']/(words_data['my_norm']+words_data['friend_norm'])
+		words_data['prop_bin'] = np.floor(words_data['my_prop']*10)
+		# Filter
+		words_data = words_data[(words_data['friend_norm'] > 1) | (words_data['my_norm'] > 1)]
+		words_data['total'] = words_data['me']+words_data['friend']
+		words_data.sort_values(by = ['total'], ascending = [False], inplace=True)
+		# Visual
+		summ = pd.DataFrame()
+		for i in range(10):
+		    summ[str(i)] = words_data[words_data['prop_bin']==i]['word'].reset_index().head(10)['word']
+
+		bins = []
+		for i in range(10):
+		    bins.append(','.join(word for word in words_data[words_data['prop_bin']==i]['word'].reset_index().head(5)['word'].tolist()))
+		summ_df = pd.DataFrame(bins, columns = ['Words'])
+		summ_df['Val'] = pd.Series([i for i in range(10)])
+		summ_df.set_index('Words', inplace = True)
+		fig = plt.figure(figsize = (13,5))
+		ax = fig.add_axes([0.22	,0.1,0.85,0.7]) 
+		sns.heatmap(summ_df)
+		plt.show()
 
 if __name__ == "__main__":
 	#load()
