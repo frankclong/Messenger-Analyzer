@@ -72,7 +72,7 @@ Shows activity over time. May be able to identify cyclical patterns or trends. C
 Similar to above. 
 <br>
 
-![alt text](./img/msg_v_time_contact.JPG)
+![alt text](./img/msg_v_time_contact.png)
 ### Hourly Distribution of sent messages
 Provides information on when you are most likely to reply. Can be used to identify unhealthy patterns or habits. 
 <br>
