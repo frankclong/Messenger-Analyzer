@@ -66,20 +66,20 @@ Identifies who you have exchanged the most messages with ever! WARNING: Results 
 Shows activity over time. May be able to identify cyclical patterns or trends. Can also see the effect of certain effects on your messaging habits (e.g. Do I talk to more people during a global pandemic?)
 <br>
 
-![alt text](./img/msg_v_time.jpg)
+![alt text](./img/msg_v_time.JPG)
 
 ### Messages over time with a specific contact (sent and received)
 Similar to above. 
 <br>
 
-![alt text](./img/msg_v_time_contact.png)
+![alt text](./img/msg_v_time_contact.JPG)
 ### Hourly Distribution of sent messages
 Provides information on when you are most likely to reply. Can be used to identify unhealthy patterns or habits. 
 <br>
 
-![alt text](./img/msg_dist.jpg)
+![alt text](./img/msg_dist.JPG)
 ### Word spectrum
 For a specific contact, identify which words you are more likely to type opposed to your contact. 
 <br>
 
-![alt text](./img/word_spectrum.jpg)
+![alt text](./img/word_spectrum.JPG)
