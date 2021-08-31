@@ -84,7 +84,7 @@ Provides information on when you are most likely to reply. Can be used to identi
 For a specific contact, identify which words you are more likely to type opposed to your contact. 
 <br>
 
-![alt text](./img/word_spectrum.JPG)
+![alt text](./img/word_spectrum2.JPG)
 
 ## Next Steps/Features
 * Date range filter

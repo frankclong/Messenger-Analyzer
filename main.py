@@ -3,6 +3,7 @@ import os
 import datetime
 import sys
 import re
+from numpy.lib.twodim_base import tri
 import pandas as pd
 import matplotlib.pyplot as plt
 from tkinter import Tk, Canvas, Entry, Button, PhotoImage
@@ -15,9 +16,8 @@ import pymongo
 import time
 import glob
 from pathlib import Path
-_ROOT_PATH_ARG = 1
 
-MY_NAME = "Frank Long"
+MY_NAME = ""
 
 # python main.py ./messages/inbox
 
@@ -92,6 +92,15 @@ def getLastMessage():
 	last_message = list(messages.find().sort('datetime', -1).limit(1))[0]
 	print(last_message['datetime'])
 
+def getName():
+	# Determine who sends the most messages 
+	pipeline = [
+		{"$group": {"_id": "$sender_name", "count": {"$sum": 1}}},
+		{"$sort" : {"count": -1}}
+	]
+	name = list(messages.aggregate(pipeline))[0]
+	return name['_id']
+
 def update(rootpath=''):
 	if not rootpath:
 		print("No path provided")
@@ -141,6 +150,31 @@ def update(rootpath=''):
 					message_obj['day'] = dt_obj.day
 					message_obj['hour'] = dt_obj.hour
 				messages.insert_many(messages_list)
+
+# Consider adding some import ID
+# allows for ensuring those are different to remove duplicates and also things like removing last import
+def cleanup():
+	# Identify duplicates - group messages with same timestamp, sender_name
+	# Note: dropDups has been deprecated from ensureIndex
+	pipeline = [
+		{ '$group': { 
+			'_id': { 'sender_name': "$sender_name", 'timestamp_ms' : '$timestamp_ms', 'content' : '$content'}, 
+			'dups': { "$addToSet": "$_id" }, 
+			'count': { "$sum": 1 } 
+		}},
+		{ '$match': { 
+			'count': { "$gt": 1 }   
+		}}
+	]
+	dups = list(messages.aggregate(pipeline,  allowDiskUse = True))
+
+	# Remove them
+	removed = 0
+	for dup in dups:
+		for id in dup['dups'][1:]:
+			messages.delete_one({'_id' : id})
+			removed += 1
+	print("Removed {} duplicate messages".format(removed))
 
 ############################################################
 ####### 					PLOTS					########
@@ -341,13 +375,28 @@ def word_spectrum(name_field):
 
 		bins = []
 		for i in range(10):
-			bins.append(','.join(word for word in words_data[words_data['prop_bin']==i]['word'].reset_index().head(5)['word'].tolist()))
+			bins.append('\n'.join(word for word in words_data[words_data['prop_bin']==i]['word'].reset_index().head(5)['word'].tolist()))
 		summ_df = pd.DataFrame(bins, columns = ['Words'])
 		summ_df['Word Spectrum'] = pd.Series([i for i in range(10)])
 		summ_df.set_index('Words', inplace = True)
-		fig = plt.figure(figsize = (13,5))
-		ax = fig.add_axes([0.22	,0.1,0.85,0.7]) 
-		sns.heatmap(summ_df)
+		summ_df_t = summ_df.transpose()
+		fig = plt.figure(figsize = (13,3.5))
+		ax = fig.add_axes([0.1,0.35,0.8,0.55]) 
+		ax.spines['top'].set_visible(False)
+		ax.spines['right'].set_visible(False)
+		ax.spines['left'].set_visible(False)
+		ax.set_yticks([])
+		#plt.bar(summ_df_t.columns, range(1,11), width=1.0, color=sns.color_palette("Blues", n_colors=10))
+		plt.bar(summ_df_t.columns, [1]*10, width=1.0, color=sns.color_palette("Blues", n_colors=10))
+		plt.ylabel("\n".join(name_input.split()), rotation = 0)
+		#plt.ylabel("My Contact's \nWords", rotation = 0)
+		ax2 = ax.twinx()
+		ax2.spines['top'].set_visible(False)
+		ax2.spines['right'].set_visible(False)
+		ax2.spines['left'].set_visible(False)
+		ax2.set_yticks([])
+		plt.ylabel("\n".join(MY_NAME.split()), rotation= 0)
+		#plt.ylabel("My \nWords", rotation = 0)
 		plt.show()
 	
 # Peak times
@@ -375,11 +424,8 @@ def exit_program():
 	exit()
 
 def test():
-	client = pymongo.MongoClient()
-	db = client['messenger-analyzer']
-	messages = db['messages']
-	contacts = db['contacts']
-	name_input = 'Daniel Lin'
+	nlp = spacy.load('en_core_web_sm')
+	name_input = "Michael Zhou"
 	contact = list(contacts.find({'name' : name_input}))
 	# Only plot if valid name
 	if len(contact) > 0:
@@ -390,12 +436,10 @@ def test():
 		rcvd_query = {"contact_id":contact_id, "sender_name" : {"$ne": MY_NAME}, "type":"Generic", "content" : {"$exists":True}}
 		sent_messages = list(messages.find(sent_query))
 		rcvd_messages = list(messages.find(rcvd_query))
-
 		sent_messages_joined = ' '.join(map(lambda x: x['content'], sent_messages))
 		rcvd_messages_joined = ' '.join(map(lambda x: x['content'], rcvd_messages))
 
 		# Get contact name
-		nlp = spacy.load('en_core_web_sm')
 		word_counts = {}
 		my_count = 0
 		friend_count = 0 
@@ -426,9 +470,7 @@ def test():
 					word_counts.update({word:[word_counts[word][0], word_counts[word][1] + 1]})
 				else:
 					word_counts[word] = [0,1]
-
-
-		print("Processing words...")
+		
 		words_data = pd.DataFrame.from_dict(word_counts,orient='index')
 		words_data = words_data.reset_index()
 		words_data.columns = ['word','me', 'friend']
@@ -443,17 +485,30 @@ def test():
 		# Visual
 		summ = pd.DataFrame()
 		for i in range(10):
-		    summ[str(i)] = words_data[words_data['prop_bin']==i]['word'].reset_index().head(10)['word']
+			summ[str(i)] = words_data[words_data['prop_bin']==i]['word'].reset_index().head(10)['word']
 
 		bins = []
 		for i in range(10):
-		    bins.append(','.join(word for word in words_data[words_data['prop_bin']==i]['word'].reset_index().head(5)['word'].tolist()))
+			bins.append('\n'.join(word for word in words_data[words_data['prop_bin']==i]['word'].reset_index().head(5)['word'].tolist()))
 		summ_df = pd.DataFrame(bins, columns = ['Words'])
-		summ_df['Val'] = pd.Series([i for i in range(10)])
+		summ_df['Word Spectrum'] = pd.Series([i for i in range(10)])
 		summ_df.set_index('Words', inplace = True)
-		fig = plt.figure(figsize = (13,5))
-		ax = fig.add_axes([0.22	,0.1,0.85,0.7]) 
-		sns.heatmap(summ_df)
+		summ_df_t = summ_df.transpose()
+		fig = plt.figure(figsize = (13,3.5))
+		ax = fig.add_axes([0.1,0.35,0.8,0.55]) 
+		ax.spines['top'].set_visible(False)
+		ax.spines['right'].set_visible(False)
+		ax.spines['left'].set_visible(False)
+		ax.set_yticks([])
+		#plt.bar(summ_df_t.columns, range(1,11), width=1.0, color=sns.color_palette("Blues", n_colors=10))
+		plt.bar(summ_df_t.columns, [1]*10, width=1.0, color=sns.color_palette("Blues", n_colors=10))
+		plt.ylabel("\n".join(name_input.split()), rotation = 0)
+		ax2 = ax.twinx()
+		ax2.spines['top'].set_visible(False)
+		ax2.spines['right'].set_visible(False)
+		ax2.spines['left'].set_visible(False)
+		ax2.set_yticks([])
+		plt.ylabel("\n".join(MY_NAME.split()), rotation= 0)
 		plt.show()
 
 def main():
@@ -695,4 +750,6 @@ def main():
 if __name__ == "__main__":
 	#getLastMessage()
 	#test()
+	cleanup()
+	MY_NAME = getName()
 	main()
