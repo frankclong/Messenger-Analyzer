@@ -156,6 +156,7 @@ def update(rootpath=''):
 def cleanup():
 	# Identify duplicates - group messages with same timestamp, sender_name
 	# Note: dropDups has been deprecated from ensureIndex
+	print("Cleaning...")
 	pipeline = [
 		{ '$group': { 
 			'_id': { 'sender_name': "$sender_name", 'timestamp_ms' : '$timestamp_ms', 'content' : '$content'}, 
@@ -520,15 +521,15 @@ def main():
 	# Set up window
 	# TODO: scale for smaller resolutions
 	window = Tk()
-	window.geometry("1276x822")
+	window.geometry("1154x702")
 	window.configure(bg = "#FFFFFF")
 	window.title("Messenger Analyzer")
 
 	canvas = Canvas(
 		window,
 		bg = "#FFFFFF",
-		height = 822,
-		width = 1276,
+		height = 702,
+    	width = 1154,
 		bd = 0,
 		highlightthickness = 0,
 		relief = "ridge"
@@ -537,8 +538,8 @@ def main():
 	# Title
 	canvas.place(x = 0, y = 0)
 	canvas.create_text(
-		317.0,
-		28.0,
+		256.0,
+    	25.0,
 		anchor="nw",
 		text="Messenger Analyzer",
 		fill="#0084FF",
@@ -547,8 +548,8 @@ def main():
 
 	# Loading/Updating database
 	canvas.create_text(
-		100.0,
-		147.0,
+		86.0,
+    	147.0,
 		anchor="nw",
 		text="Filepath",
 		fill="#0084FF",
@@ -557,7 +558,7 @@ def main():
 	entry_image_1 = PhotoImage(
 		file=relative_to_assets("entry_1.png"))
 	entry_bg_1 = canvas.create_image(
-		727.5000305175781,
+		651.0,
 		170.5,
 		image=entry_image_1
 	)
@@ -567,9 +568,9 @@ def main():
 		highlightthickness=0
 	)
 	fpath_field.place(
-		x=265.5,
+		x=251.5,
 		y=154.0,
-		width=924.0000610351562,
+		width=799.0,
 		height=35.0
 	)
 	load_button_image = PhotoImage(
@@ -582,7 +583,7 @@ def main():
 		relief="flat"
 	)
 	load_button.place(
-		x=259.0,
+		x=245.0,
 		y=208.0,
 		width=210.0,
 		height=43.0
@@ -598,7 +599,23 @@ def main():
 		relief="flat"
 	)
 	update_button.place(
-		x=518.0,
+		x=504.0,
+		y=208.0,
+		width=210.0,
+		height=43.0
+	)
+
+	clean_button_image = PhotoImage(
+		file=relative_to_assets("button_9.png"))
+	clean_button = Button(
+		image=clean_button_image,
+		borderwidth=0,
+		highlightthickness=0,
+		command=cleanup,
+		relief="flat"
+	)
+	clean_button.place(
+		x=763.0,
 		y=208.0,
 		width=210.0,
 		height=43.0
@@ -606,8 +623,8 @@ def main():
 
 	# Visualizations for all coversations (General)
 	canvas.create_text(
-		101.0,
-		284.0,
+		87.0,
+    	284.0,
 		anchor="nw",
 		text="General",
 		fill="#0084FF",
@@ -623,8 +640,8 @@ def main():
 		relief="flat"
 	)
 	msgsvtimeall_button.place(
-		x=434.0,
-		y=346.0,
+		x=420.0,
+		y=333.0,
 		width=210.0,
 		height=93.0
 	)
@@ -639,8 +656,8 @@ def main():
 		relief="flat"
 	)
 	top10_button.place(
-		x=101.0,
-		y=346.0,
+		x=87.0,
+		y=333.0,
 		width=210.0,
 		height=93.0
 	)
@@ -654,24 +671,24 @@ def main():
 		relief="flat"
 	)
 	hour_button.place(
-		x=767.0,
-		y=346.0,
+		x=753.0,
+		y=333.0,
 		width=210.0,
 		height=93.0
 	)
 
 	# Visualizations for individual conversations
 	canvas.create_text(
-		100.0,
-		498.0,
+		86.0,
+    	459.0,
 		anchor="nw",
 		text="Individual",
 		fill="#0084FF",
 		font=TkFont.Font(family="Helvetica",size=24,weight="bold")
 	)
 	canvas.create_text(
-		101.0,
-		547.0,
+		87.0,
+    	508.0,
 		anchor="nw",
 		text="Name",
 		fill="#0084FF",
@@ -680,8 +697,8 @@ def main():
 	entry_image_2 = PhotoImage(
 		file=relative_to_assets("entry_2.png"))
 	entry_bg_2 = canvas.create_image(
-		388.0,
-		561.0,
+		374.0,
+		522.0,
 		image=entry_image_2
 	)
 	name_field = Entry(
@@ -690,8 +707,8 @@ def main():
 		highlightthickness=0
 	)
 	name_field.place(
-		x=193.0,
-		y=548.0,
+		x=179.0,
+		y=509.0,
 		width=390.0,
 		height=26.0
 	)
@@ -705,8 +722,8 @@ def main():
 		relief="flat"
 	)
 	msgsvtimeind_button.place(
-		x=100.0,
-		y=633.0,
+		x=87.0,
+		y=555.0,
 		width=210.0,
 		height=93.0
 	)
@@ -721,8 +738,8 @@ def main():
 		relief="flat"
 	)
 	wordspec_button.place(
-		x=433.0,
-		y=633.0,
+		x=420.0,
+		y=555.0,
 		width=210.0,
 		height=93.0
 	)
@@ -738,9 +755,9 @@ def main():
 		relief="flat"
 	)
 	exit_button.place(
-		x=1043.0,
-		y=755.0,
-		width=210.0,
+		x=1032.0,
+		y=637.0,
+		width=102.0,
 		height=43.0
 	)	
 	window.resizable(False, False)
@@ -750,6 +767,6 @@ def main():
 if __name__ == "__main__":
 	#getLastMessage()
 	#test()
-	cleanup()
+	#cleanup()
 	MY_NAME = getName()
 	main()

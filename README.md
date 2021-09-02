@@ -1,5 +1,5 @@
 # Messenger-Analyzer
-Parses JSON files that hold Facebook messenger data and allows user to generate graphs and trends. Download Facebook Messenger data in JSON format and edit rootpath to use
+Parses JSON files that hold Facebook messenger data and allows user to generate graphs and trends. Download Facebook Messenger data in JSON format and enter path to inbox to use
 
 ## Usage
 
@@ -11,7 +11,7 @@ python main.py
 
 ![alt text](./img/menu.JPG)
 
-When running for the first time, enter the path to your Facebook messages/inbox directory of data and click "Load". Use the "Update" button when you wish to add additional data file in the future. 
+When running for the first time, enter the path to your Facebook messages/inbox directory of data and click "Load". Use the "Update" button when you wish to add additional data file in the future. Use the "Clean Up" button to remove duplicate messages in case of accidental load or overload. 
 
 ## Required Libraries
 * pandas
@@ -50,14 +50,20 @@ Connects to local MongoDB database and creates two collections:
 ### update()
 Connects to local MongoDB and adds data to the existing collections. This is almost identical to load(). Kept separate for now in case of future changes. 
 
-### getLastMessage()
-Returns the date of the last message in the database. This allows you to know which date to start at when downloading data again to update the database. Note that since Facebook does not allow you to specify the hour, it is recommended to start on the next day. Unfortunately, you will miss any messages sent the previous day after the last download. This could be avoided by checking each message to see if it is already in the database, but that significantly slows down the import. 
+### cleanup()
+Connects to local MongoDB and looks through the messages collection for documents that have the same "timestamp", "sender_name", and "content". Keeps the first document and removes subsequent ones. 
 
-### analyze()
-Launches the tkinter GUI to allow the user to select various visualizations. Currently does not fully support the MongoDB structures. WIP
+### getLastMessage()
+Returns the date of the last message in the database. This allows you to know which date to start at when downloading data again to update the database. Note that since Facebook does not allow you to specify the hour, it is recommended to start on the next day. Unfortunately, you will miss any messages sent the previous day after the last download. Due to addition of the `cleanup()` function, you can now start retrieving on the day returned by this function, but cleanup time may be long. 
+
+### getName()
+Determines the name of the owner of the inbox by assuming that name is the one with the highest total messages sent count. 
+
+### main()
+Launches the tkinter GUI to allow the user to select various visualizations built using Matplotlib, Pandas, and Seaborn with data queried from MongoDB. 
 
 ## Available Visualizations
-Note that date filters will be added soon. Sample images of the visualizations to come as well!
+Note that date filters will be added soon.
 ### Top 10 (n) Most Messaged
 Identifies who you have exchanged the most messages with ever! WARNING: Results may surprise you
 <br>
@@ -65,7 +71,7 @@ Identifies who you have exchanged the most messages with ever! WARNING: Results 
 ![alt text](./img/topn.png)
 
 ### Messages over time (sent and received)
-Shows activity over time. May be able to identify cyclical patterns or trends. Can also see the effect of certain effects on your messaging habits (e.g. Do I talk to more people during a global pandemic?)
+Shows activity over time. May be able to identify cyclical patterns or trends. Can also see the effect of certain events on your messaging habits (e.g. Do I talk to more people during a global pandemic?)
 <br>
 
 ![alt text](./img/msg_v_time.JPG)
@@ -88,6 +94,6 @@ For a specific contact, identify which words you are more likely to type opposed
 
 ## Next Steps/Features
 * Date range filter
-* Database cleanup option - in case the sample files/messages are loaded multiple times, need a function to clean it up or a way to prevent this
+* Explore database cleanup alternatives - currently looks through entire database for duplicates. Can we add a label to each document that represents the import whenever data is loaded? This way we can add a function that removes the last load and potentially faster query as you would not need to check docs from the same load... 
 * More graphs...
 * Optimize word spectrum - consider analyzing a sample of the conversation instead of all of it?
