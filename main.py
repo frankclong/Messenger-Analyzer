@@ -28,7 +28,8 @@ messages = db['messages']
 contacts = db['contacts']
 
 # Function to load data to a database (accessing data much better than individual json files)
-def load(rootpath=''):
+def load(fpath_field):
+	rootpath = fpath_field.get()
 	if not rootpath:
 		print("No path provided")
 		return
@@ -101,11 +102,11 @@ def getName():
 	name = list(messages.aggregate(pipeline))[0]
 	return name['_id']
 
-def update(rootpath=''):
+def update(fpath_field):
+	rootpath = fpath_field.get()
 	if not rootpath:
 		print("No path provided")
 		return
-	rootpath = sys.argv[_ROOT_PATH_ARG]
 	print(rootpath)
 	filenames = os.listdir(rootpath) # get all files' and folders' names in the root directory
 
@@ -184,6 +185,7 @@ def cleanup():
 # Plot messages over time
 def msgsvtime_contact(name_field):
 	# Get contact name
+	MY_NAME = getName()
 	name_input = name_field.get()
 	contact = list(contacts.find({'name' : name_input}))
 	# Only plot if valid name
@@ -264,6 +266,7 @@ def top10():
 
 def msgsvtime_all():
 	print("Getting messages over time...")
+	MY_NAME = getName()
 	# Get messages sent
 	pipeline = [
 		{"$match" : {"sender_name" : MY_NAME}},
@@ -310,7 +313,9 @@ def msgsvtime_all():
 # In-depth analysis of an individual conversation
 # Word spectrum 
 # Curretly very slow.. consider sampling the conversation or explore other ways of processing
+# https://stackoverflow.com/questions/4421207/how-to-get-the-last-n-records-in-mongodb
 def word_spectrum(name_field):
+	MY_NAME = getName()
 	nlp = spacy.load('en_core_web_sm')
 	name_input = name_field.get()
 	contact = list(contacts.find({'name' : name_input}))
@@ -402,6 +407,7 @@ def word_spectrum(name_field):
 	
 # Peak times
 def message_hours():
+	MY_NAME = getName()
 	print("Getting your message times...")
 	pipeline = [
 		{"$match" : {"sender_name" : MY_NAME}},
@@ -765,8 +771,6 @@ def main():
 
 
 if __name__ == "__main__":
-	#getLastMessage()
+	# getLastMessage()
 	#test()
-	#cleanup()
-	MY_NAME = getName()
 	main()
