@@ -84,6 +84,7 @@ def load(fpath_field):
 					message_obj['day'] = dt_obj.day
 					message_obj['hour'] = dt_obj.hour
 				messages.insert_many(messages_list)
+	print("Loading complete")
 
 def getLastMessage():
 	# Connect to database
@@ -151,6 +152,7 @@ def update(fpath_field):
 					message_obj['day'] = dt_obj.day
 					message_obj['hour'] = dt_obj.hour
 				messages.insert_many(messages_list)
+	print("Updating complete")
 
 # Consider adding some import ID
 # allows for ensuring those are different to remove duplicates and also things like removing last import
@@ -326,8 +328,8 @@ def word_spectrum(name_field):
 		# Get messages sent
 		sent_query = {"contact_id":contact_id, "sender_name": MY_NAME, "type":"Generic", "content" : {"$exists":True}}
 		rcvd_query = {"contact_id":contact_id, "sender_name" : {"$ne": MY_NAME}, "type":"Generic", "content" : {"$exists":True}}
-		sent_messages = list(messages.find(sent_query))
-		rcvd_messages = list(messages.find(rcvd_query))
+		sent_messages = list(messages.find(sent_query))[-5000:]
+		rcvd_messages = list(messages.find(rcvd_query))[-5000:]
 		sent_messages_joined = ' '.join(map(lambda x: x['content'], sent_messages))
 		rcvd_messages_joined = ' '.join(map(lambda x: x['content'], rcvd_messages))
 
