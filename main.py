@@ -326,10 +326,17 @@ def word_spectrum(name_field):
 		print("Getting messages for " +  name_input + "...")
 		contact_id = contact[0]['id']
 		# Get messages sent
-		sent_query = {"contact_id":contact_id, "sender_name": MY_NAME, "type":"Generic", "content" : {"$exists":True}}
-		rcvd_query = {"contact_id":contact_id, "sender_name" : {"$ne": MY_NAME}, "type":"Generic", "content" : {"$exists":True}}
-		sent_messages = list(messages.find(sent_query))[-5000:]
-		rcvd_messages = list(messages.find(rcvd_query))[-5000:]
+		sent_pipeline = [
+			{"$match" : {"contact_id":contact_id, "sender_name": MY_NAME, "type":"Generic", "content" : {"$exists":True}}},
+			{"$sort" : {"timestamp_ms": -1}}
+		]
+		rcvd_pipeline = [
+			{"$match" : {"contact_id":contact_id, "sender_name" : {"$ne": MY_NAME}, "type":"Generic", "content" : {"$exists":True}}},
+			{"$sort" : {"timestamp_ms": -1}}
+		]
+
+		sent_messages = list(messages.aggregate(sent_pipeline))[:5000]
+		rcvd_messages = list(messages.aggregate(rcvd_pipeline))[:5000]
 		sent_messages_joined = ' '.join(map(lambda x: x['content'], sent_messages))
 		rcvd_messages_joined = ' '.join(map(lambda x: x['content'], rcvd_messages))
 

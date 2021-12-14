@@ -1,15 +1,16 @@
 # Messenger-Analyzer
 Parses JSON files that hold Facebook messenger data and allows user to generate graphs and trends. Download Facebook Messenger data in JSON format and enter path to inbox to use
 
+## Software Requirements
+Make sure to have <a href="https://www.python.org/downloads/" target="_blank">Python 3</a>
+, [required libraries](#Required-Libraries), and <a href="https://www.freecodecamp.org/news/learn-mongodb-a4ce205e7739/" target="_blank">MongoDB</a> installed.
+
+![alt text](./img/menu.JPG)
+
 ## Usage
-
-Make sure to have Python 3 installed and required libraries.
-
 ```bash
 python main.py
 ```
-
-![alt text](./img/menu.JPG)
 
 When running for the first time, enter the path to your Facebook messages/inbox directory of data and click "Load". Use the "Update" button when you wish to add additional data file in the future. Use the "Clean Up" button to remove duplicate messages in case of accidental load or overload. 
 
@@ -20,6 +21,8 @@ When running for the first time, enter the path to your Facebook messages/inbox 
 * numpy
 * spacy (with en_core_web_sm model)
 * pymongo
+
+Run `pip install -r requirements.txt` to install all
 
 ## How to download Facebook Messages Data
 1. After logging in to facebook.com, click the dropdown menu in the top right corner. Select "Settings & Privacy" --> "Settings"
@@ -96,4 +99,5 @@ For a specific contact, identify which words you are more likely to type opposed
 * Date range filter
 * Explore database cleanup alternatives - currently looks through entire database for duplicates. Can we add a label to each document that represents the import whenever data is loaded? This way we can add a function that removes the last load and potentially faster query as you would not need to check docs from the same load... 
 * More graphs...
-* Optimize word spectrum - consider analyzing a sample of the conversation instead of all of it?
+* Chatbot based on your messages?
+* Character encoding
