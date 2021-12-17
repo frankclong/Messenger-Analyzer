@@ -1,25 +1,36 @@
 import json
 import os
 import datetime
-import sys
-import re
-from numpy.lib.twodim_base import tri
 import pandas as pd
 import matplotlib.pyplot as plt
 from tkinter import Tk, Canvas, Entry, Button, PhotoImage
 import tkinter.font as TkFont
-from pymongo import message
 import seaborn as sns
 import numpy as np
 import spacy
 import pymongo
-import time
 import glob
 from pathlib import Path
+from urllib.request import urlopen
+import matplotlib.font_manager as fm
+from tempfile import NamedTemporaryFile
+
+# Get fonts from Google fonts github
+# Facebook uses Roboto
+roboto_github_url = "https://github.com/google/fonts/blob/main/apache/roboto/static/Roboto-Medium.ttf"
+robot_url = roboto_github_url + '?raw=true'  # You want the actual file, not some html
+
+response = urlopen(robot_url)
+f = NamedTemporaryFile(delete=False, suffix='.ttf')
+f.write(response.read())
+f.close()
+roboto_prop = fm.FontProperties(fname=f.name)
+
+# Facebook colours
+FB_BLUE = (0,0.5176,1,1)
+FB_GREY = '#b6b6bc' # #b6b6bc, #cccdd4
 
 MY_NAME = ""
-
-# python main.py ./messages/inbox
 
 # Connect to database
 client = pymongo.MongoClient()
@@ -65,11 +76,6 @@ def load(fpath_field):
 						"id" : filename.lower() 
 					}
 					contacts.insert_one(doc)
-				
-				#indconv = db[contact_id]
-				#indconv.drop()
-				#indconv.insert_many(data['messages'])
-
 				messages_list = data['messages']
 
 				for message_obj in messages_list:
@@ -92,7 +98,7 @@ def getLastMessage():
 	db = client['messenger-analyzer']
 	messages = db['messages']
 	last_message = list(messages.find().sort('datetime', -1).limit(1))[0]
-	print(last_message['datetime'])
+	print("Last message time: {}".format(last_message['datetime']))
 
 def getName():
 	# Determine who sends the most messages 
@@ -230,12 +236,14 @@ def msgsvtime_contact(name_field):
 			rcvd_counts.append(val['count'])
 
 		plt.figure()
-		plt.plot(rcvd_dates, rcvd_counts, label = "Received")
-		plt.plot(sent_dates, sent_counts, label = "Sent")
-		plt.xlabel("Date")
-		plt.ylabel("Number of Messages")
-		plt.legend()
-		plt.title(name_input)
+		plt.plot(rcvd_dates, rcvd_counts, label = "Received", color = FB_GREY)
+		plt.plot(sent_dates, sent_counts, label = "Sent", color = FB_BLUE)
+		plt.xlabel("Date", fontproperties = roboto_prop)
+		plt.ylabel("Number of Messages", fontproperties = roboto_prop)
+		plt.legend(prop = roboto_prop)
+		plt.title(name_input, fontproperties = roboto_prop, fontsize = 18)
+		plt.xticks(fontproperties = roboto_prop)
+		plt.yticks(fontproperties = roboto_prop)
 		plt.show()
 	else:
 		print(name_input + " not found")
@@ -260,10 +268,12 @@ def top10():
 		name = list(contact)[0]['name']
 		names.append(name)
 		message_count.append(val['count'])
-	ax.bar(names, message_count)
-	ax.set_ylabel("Number of Messages")
-	ax.set_title("Top " + str(n) + " Most Messaged")
+	ax.bar(names, message_count, color = FB_BLUE)
+	ax.set_ylabel("Number of Messages", fontproperties = roboto_prop)
+	ax.set_title("Top " + str(n) + " Most Messaged", fontproperties = roboto_prop,  fontsize = 18)
 	plt.setp(ax.get_xticklabels(), rotation=30, horizontalalignment='right')
+	plt.xticks(fontproperties = roboto_prop)
+	plt.yticks(fontproperties = roboto_prop)
 	plt.show()
 
 def msgsvtime_all():
@@ -304,12 +314,14 @@ def msgsvtime_all():
 		rcvd_counts.append(val['count'])
 
 	plt.figure()
-	plt.plot(rcvd_dates, rcvd_counts, label = "Received")
-	plt.plot(sent_dates, sent_counts, label = "Sent")
-	plt.xlabel("Date")
-	plt.ylabel("Number of Messages")
-	plt.legend()
-	plt.title("Total Messages over Time")
+	plt.plot(rcvd_dates, rcvd_counts, label = "Received", color = FB_GREY)
+	plt.plot(sent_dates, sent_counts, label = "Sent", color = FB_BLUE)
+	plt.xlabel("Date", fontproperties = roboto_prop)
+	plt.ylabel("Number of Messages", fontproperties = roboto_prop)
+	plt.legend(prop = roboto_prop)
+	plt.title("Total Messages over Time", fontproperties = roboto_prop, fontsize = 18)
+	plt.xticks(fontproperties = roboto_prop)
+	plt.yticks(fontproperties = roboto_prop)
 	plt.show()
 
 # In-depth analysis of an individual conversation
@@ -403,14 +415,15 @@ def word_spectrum(name_field):
 		ax.set_yticks([])
 		#plt.bar(summ_df_t.columns, range(1,11), width=1.0, color=sns.color_palette("Blues", n_colors=10))
 		plt.bar(summ_df_t.columns, [1]*10, width=1.0, color=sns.color_palette("Blues", n_colors=10))
-		plt.ylabel("\n".join(name_input.split()), rotation = 0)
+		plt.xticks(fontproperties = roboto_prop)
+		plt.ylabel("\n".join(name_input.split()), rotation = 0, fontproperties = roboto_prop)
 		#plt.ylabel("My Contact's \nWords", rotation = 0)
 		ax2 = ax.twinx()
 		ax2.spines['top'].set_visible(False)
 		ax2.spines['right'].set_visible(False)
 		ax2.spines['left'].set_visible(False)
 		ax2.set_yticks([])
-		plt.ylabel("\n".join(MY_NAME.split()), rotation= 0)
+		plt.ylabel("\n".join(MY_NAME.split()), rotation= 0, fontproperties = roboto_prop)
 		#plt.ylabel("My \nWords", rotation = 0)
 		plt.show()
 	
@@ -431,9 +444,11 @@ def message_hours():
 	total_messages = sum(message_count)
 	message_frac = [c/total_messages for c in message_count]
 	plt.figure()
-	plt.bar(hours, message_frac)
-	plt.ylabel("Proportion")
-	plt.xlabel("Hour")
+	plt.bar(hours, message_frac, color = FB_BLUE)
+	plt.ylabel("Proportion",fontproperties = roboto_prop)
+	plt.xlabel("Hour",fontproperties = roboto_prop)
+	plt.xticks(fontproperties = roboto_prop)
+	plt.yticks(fontproperties = roboto_prop)
 	plt.show()
 
 def exit_program():
@@ -539,6 +554,8 @@ def main():
 	window.geometry("1154x702")
 	window.configure(bg = "#FFFFFF")
 	window.title("Messenger Analyzer")
+	icon_photo = PhotoImage(file = relative_to_assets("messenger_analyzer_icon.png"))
+	window.iconphoto(False, icon_photo)
 
 	canvas = Canvas(
 		window,
@@ -780,6 +797,5 @@ def main():
 
 
 if __name__ == "__main__":
-	# getLastMessage()
-	#test()
+	getLastMessage()
 	main()
