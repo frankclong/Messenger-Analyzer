@@ -77,7 +77,7 @@ Identifies who you have exchanged the most messages with ever! WARNING: Results 
 Shows activity over time. May be able to identify cyclical patterns or trends. Can also see the effect of certain events on your messaging habits (e.g. Do I talk to more people during a global pandemic?)
 <br>
 
-![alt text](./img/msg_v_time.JPG)
+![alt text](./img/msg_v_time.PNG)
 
 ### Messages over time with a specific contact (sent and received)
 Similar to above. 
@@ -93,7 +93,7 @@ Provides information on when you are most likely to reply. Can be used to identi
 For a specific contact, identify which words you are more likely to type opposed to your contact. 
 <br>
 
-![alt text](./img/word_spectrum2.JPG)
+![alt text](./img/wordspectrum.PNG)
 
 ## Next Steps/Features
 * Date range filter
