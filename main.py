@@ -220,7 +220,8 @@ def msgsvtime_contact(name_field):
 		
 		# Get messages received
 		pipeline = [
-			{"$match" : {"contact_id":contact_id, "sender_name" : {'$ne': MY_NAME}}},
+			{"$match" : {"contact_id":contact_id, "sender_name" : {'$ne': MY_NAME}, "content" : {"$exists": True},
+				"content" : {"$not" : {"$regex" : 'Reacted '}}}},
 			{"$group": {"_id": {"year":"$year","month":"$month"}, "count": {"$sum": 1}}},
 			{"$sort" : {"_id": 1}}
 		]
@@ -256,6 +257,8 @@ def top10():
 	ax = fig.add_axes([0.1,0.2,0.85,0.7]) 
 	# Group by name, filter top 10 and sort, plot Name vs. messages
 	pipeline = [
+		{"$match" : {"type":"Generic", "content" : {"$exists":True},
+				"content" : {"$not" : {"$regex" : 'Reacted '}}}},
 		{"$group": {"_id": "$contact_id", "count": {"$sum": 1}}},
 		{"$sort" : {"count": -1}}
 	]
@@ -298,7 +301,8 @@ def msgsvtime_all():
 	
 	# Get messages received
 	pipeline = [
-		{"$match" : {"sender_name" : {'$ne': MY_NAME}}},
+		{"$match" : {"sender_name" : {'$ne': MY_NAME}, "type":"Generic", "content" : {"$exists":True},
+			"content" : {"$not" : {"$regex" : 'Reacted '}}}},
 		{"$group": {"_id": {"year":"$year","month":"$month"}, "count": {"$sum": 1}}},
 		{"$sort" : {"_id": 1}}
 	]
@@ -343,7 +347,7 @@ def word_spectrum(name_field):
 			{"$sort" : {"timestamp_ms": -1}}
 		]
 		rcvd_pipeline = [
-			{"$match" : {"contact_id":contact_id, "sender_name" : {"$ne": MY_NAME}, "type":"Generic", "content" : {"$exists":True}}},
+			{"$match" : {"contact_id":contact_id, "sender_name" : {"$ne": MY_NAME}, "type":"Generic", "content" : {"$exists":True,"$not" : {"$regex" : 'Reacted '}}}},
 			{"$sort" : {"timestamp_ms": -1}}
 		]
 
@@ -415,16 +419,16 @@ def word_spectrum(name_field):
 		ax.set_yticks([])
 		#plt.bar(summ_df_t.columns, range(1,11), width=1.0, color=sns.color_palette("Blues", n_colors=10))
 		plt.bar(summ_df_t.columns, [1]*10, width=1.0, color=sns.color_palette("Blues", n_colors=10))
-		plt.xticks(fontproperties = roboto_prop)
+		plt.xticks(fontproperties = roboto_prop, fontsize = 12)
 		plt.ylabel("\n".join(name_input.split()), rotation = 0, fontproperties = roboto_prop)
-		#plt.ylabel("My Contact's \nWords", rotation = 0)
+		# plt.ylabel("My Contact's \nWords", rotation = 0, fontproperties = roboto_prop, fontsize = 10)
 		ax2 = ax.twinx()
 		ax2.spines['top'].set_visible(False)
 		ax2.spines['right'].set_visible(False)
 		ax2.spines['left'].set_visible(False)
 		ax2.set_yticks([])
 		plt.ylabel("\n".join(MY_NAME.split()), rotation= 0, fontproperties = roboto_prop)
-		#plt.ylabel("My \nWords", rotation = 0)
+		# plt.ylabel("My \nWords", rotation = 0, fontproperties = roboto_prop, fontsize = 10)
 		plt.show()
 	
 # Peak times
