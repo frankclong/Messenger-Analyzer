@@ -6,4 +6,5 @@ messages/
 *.sublime-build
 *.json
 MessageAnalyzer/
-
+__pycache__
+*.pyc
