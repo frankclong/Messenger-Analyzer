@@ -8,3 +8,4 @@ messages/
 MessageAnalyzer/
 __pycache__
 *.pyc
+media/
