@@ -9,3 +9,4 @@ MessageAnalyzer/
 __pycache__
 *.pyc
 media/
+*.sqlite3

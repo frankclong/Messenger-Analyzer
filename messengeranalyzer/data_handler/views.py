@@ -3,6 +3,13 @@ import zipfile
 from django.shortcuts import render, redirect
 from django.conf import settings
 from .forms import MessagesDataUploadForm
+import glob
+import json
+from .models import Contact, ConversationMessage
+import datetime 
+from pytz import timezone
+
+INBOX_FOLDER = "inbox"
 
 # Helper functions
 def handle_uploaded_file(f):
@@ -14,6 +21,7 @@ def handle_uploaded_file(f):
             destination.write(chunk)
     return upload_path
 
+# TODO only save the inbox folder
 def extract_zip(uploaded_file_path):
     extracted_files = []
     extract_path = os.path.join(settings.MEDIA_ROOT, 'extracted')
@@ -24,13 +32,70 @@ def extract_zip(uploaded_file_path):
         extracted_files = zip_ref.namelist()
     return extracted_files, extract_path
 
+def find_specific_folder(root_dir, target_folder_name):
+    for dirpath, dirnames, filenames in os.walk(root_dir):
+        if target_folder_name in dirnames:
+            return os.path.join(dirpath, target_folder_name)
+    return None
+
 def create_models_from_extracted_files(extracted_files, extract_path):
-    for file_name in extracted_files:
-        file_path = os.path.join(extract_path, file_name)
-        # TODO Add your logic to read the file and create models
-        # with open(file_path, 'r') as file:
-        #     data = file.read()
-        #     # Parse the data and create Contact and Message models
+    tz = timezone('US/Eastern')
+    inbox_path = find_specific_folder(extract_path, INBOX_FOLDER)
+    if not inbox_path:
+        # print("Invalid path. Inbox not found")
+        return
+
+    print(inbox_path)
+    filenames = os.listdir(inbox_path)
+    
+    # Loop through all folders
+    for filename in filenames:
+        # Name of file is "message_1.json"
+        # As of recent update, larger datasets are split into multiple files
+        filepath = os.path.join(inbox_path, filename)
+        message_files = glob.glob(os.path.join(filepath, "message_*.json"))
+        if len(message_files) == 0:
+            # print("Message files not found!")
+            return
+
+        for message_file in message_files:
+            with open(message_file, encoding="utf-8") as f:
+                data = json.load(f)
+        
+            # Only analyze direct messages and if more than 100 messages sent
+            if len(data["messages"]) > 100:
+                # Add contact to collection if does not exist
+                # print(filename.lower())
+                contact_id = filename.lower()
+                contact_name = data["title"]
+
+                contact = Contact.objects.filter(folder_id=contact_id).first()
+
+                if not contact:
+                    # print("Adding ", contact_name)
+                    contact = Contact.objects.create(name=contact_name, folder_id=contact_id)
+
+                messages_list = data['messages']
+                message_models = []
+
+                for message_obj in messages_list:
+                    # Check if content exists (not vid or photo or shared links)
+                    # Note that some shared links include message
+                    if "content" in message_obj:
+                        ts = message_obj["timestamp_ms"]
+                        dt_obj = datetime.datetime.fromtimestamp(int(ts/1000), tz)
+
+                        conversation_message = ConversationMessage(
+                            sender_name=message_obj["sender_name"],
+                            content=message_obj["content"],
+                            contact=contact,
+                            timestamp_ms=ts,
+                            sent_time=dt_obj
+                        )
+                        message_models.append(conversation_message)
+                ConversationMessage.objects.bulk_create(message_models, batch_size=500)
+                
+    # print("Loading complete")
 
 # Views
 def upload_zip(request):

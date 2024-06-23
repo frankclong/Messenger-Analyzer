@@ -7,10 +7,11 @@
     <div class="mt-6 px-6 py-12 bg-gray-100 rounded-xl">
         <h1 class="mb-12 text-3xl text-center">Upload Zip File</h2>
 
-        <form method="post" enctype="multipart/form-data">
+        <form method="post" enctype="multipart/form-data" onsubmit="showSpinner()">
             {% csrf_token %}
             {{ form.as_p }}
             <button class="mt-6 px-6 py-3 text-lg font-semibold bg-blue-500 text-white rounded-xl hover:bg-blue-700" type="submit">Upload</button>
         </form>
+        <div id="spinner" class="spinner"></div>
     </div>
 {% endblock %}

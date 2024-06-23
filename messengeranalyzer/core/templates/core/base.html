@@ -4,7 +4,31 @@
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
+        <style>
+            .spinner {
+                display: none;
+                width: 50px;
+                height: 50px;
+                border: 8px solid #f3f3f3;
+                border-top: 8px solid #3498db;
+                border-radius: 50%;
+                animation: spin 2s linear infinite;
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+            }
+    
+            @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+            }
+        </style>
+        <script>
+            function showSpinner() {
+                document.getElementById('spinner').style.display = 'block';
+            }
+        </script>
         <script src="https://cdn.tailwindcss.com"></script>
 
         <title>{% block title %}{% endblock %} | Messenger Analyzer</title>
