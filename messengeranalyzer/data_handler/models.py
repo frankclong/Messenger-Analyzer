@@ -7,7 +7,7 @@ class MessagesDataUpload(models.Model):
 
 class Contact(models.Model):
     name = models.TextField()
-    folder_id = models.TextField()
+    folder_id = models.TextField(unique=True)
 
     def __str__(self):
         return self.name
@@ -20,3 +20,6 @@ class ConversationMessage(models.Model):
     contact = models.ForeignKey(Contact, on_delete=models.CASCADE)
     timestamp_ms = models.BigIntegerField()
     sent_time = models.DateTimeField()
+
+    class Meta:
+        unique_together = ('content', 'sender_name', 'timestamp_ms')
