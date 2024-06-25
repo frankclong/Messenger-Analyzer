@@ -1,4 +1,4 @@
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 
 from data_handler.models import Contact, ConversationMessage
 from django.db.models import Count
@@ -6,6 +6,7 @@ from django.db.models import Count
 import matplotlib.pyplot as plt
 from io import StringIO
 import numpy as np
+from .forms import ContactAnalysisForm, GeneralAnalysisForm
 
 def get_my_name():
     my_name_obj = ConversationMessage.objects.values("sender_name") \
@@ -62,6 +63,29 @@ def result(request):
                       "graph" : graph
                   })
 
-
 def index(request):
-    return render(request, 'analysis/index.html')
+    graph = None
+    if request.method == 'POST':
+        if 'submit_general_form' in request.POST:
+            general_form = ContactAnalysisForm(request.POST)
+            contact_form = ContactAnalysisForm()
+            if general_form.is_valid():
+                analysis_type = general_form.cleaned_data['analysis_type']
+        elif 'submit_contact_form' in request.POST:
+            general_form = ContactAnalysisForm()
+            contact_form = ContactAnalysisForm(request.POST)
+            if contact_form.is_valid():
+                selected_contact = general_form.cleaned_data['selected_contact']
+                analysis_type = general_form.cleaned_data['analysis_type']
+
+        return redirect('analysis:result')
+    else:
+        general_form = GeneralAnalysisForm()
+        contact_form = ContactAnalysisForm()
+
+
+    return render(request, 'analysis/index.html', {
+        'general_form' : general_form,
+        'contact_form' : contact_form,
+        'graph' : graph,
+    })
