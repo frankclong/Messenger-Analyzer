@@ -7,6 +7,8 @@ import matplotlib.pyplot as plt
 from io import StringIO
 import numpy as np
 from .forms import ContactAnalysisForm, GeneralAnalysisForm
+from .enums import GeneralAnalysisType, ContactAnalysisType
+from .general_analysis_functions import top_n, msgsvtime_all, message_hours
 
 def get_my_name():
     my_name_obj = ConversationMessage.objects.values("sender_name") \
@@ -18,34 +20,6 @@ def get_my_name():
     else:
         return None
 
-FB_BLUE = (0,0.5176,1,1)
-def top_n(n):
-    fig = plt.figure(figsize = [10, 5])
-    ax = fig.add_axes([0.1,0.2,0.85,0.7]) 
-
-    query = ConversationMessage.objects.all().values("contact") \
-        .annotate(count=Count("contact")) \
-        .order_by('-count')
-    top_messaged = query[:n]
-
-    names = []
-    message_count = []
-    for val in top_messaged:
-        # Get real name
-        contact_id = val['contact']
-        contact = Contact.objects.filter(id=contact_id).first()
-        name = contact.name
-        names.append(name)
-        message_count.append(val['count'])
-    ax.bar(names, message_count, color = FB_BLUE)
-    ax.set_ylabel("Number of Messages")
-    ax.set_title("Top " + str(n) + " Most Messaged", fontsize = 18)
-    plt.setp(ax.get_xticklabels(), rotation=30, horizontalalignment='right')
-    plt.xticks()
-    plt.yticks()
-
-    return fig
-
 def render_graph(fig):
     imgdata = StringIO()
     fig.savefig(imgdata, format='svg')
@@ -53,6 +27,18 @@ def render_graph(fig):
 
     data = imgdata.getvalue()
     return data
+
+def handle_general_analysis(analysis_type: GeneralAnalysisType):
+    if analysis_type == GeneralAnalysisType.TOP:
+        fig = top_n(10)
+    elif analysis_type == GeneralAnalysisType.MESSAGES_OVER_TIME:
+        fig = msgsvtime_all(get_my_name())
+    elif analysis_type == GeneralAnalysisType.MESSAGES_SENT_BY_HOUR:
+        fig = message_hours(get_my_name())
+    else:
+        return None 
+
+    return render_graph(fig)    
 
 def result(request):
     fig = top_n(10)
@@ -67,22 +53,20 @@ def index(request):
     graph = None
     if request.method == 'POST':
         if 'submit_general_form' in request.POST:
-            general_form = ContactAnalysisForm(request.POST)
+            general_form = GeneralAnalysisForm(request.POST)
             contact_form = ContactAnalysisForm()
             if general_form.is_valid():
-                analysis_type = general_form.cleaned_data['analysis_type']
+                analysis_type = GeneralAnalysisType[general_form.cleaned_data['analysis_type']]
+                graph = handle_general_analysis(analysis_type)
         elif 'submit_contact_form' in request.POST:
-            general_form = ContactAnalysisForm()
+            general_form = GeneralAnalysisForm()
             contact_form = ContactAnalysisForm(request.POST)
             if contact_form.is_valid():
-                selected_contact = general_form.cleaned_data['selected_contact']
-                analysis_type = general_form.cleaned_data['analysis_type']
-
-        return redirect('analysis:result')
+                selected_contact = contact_form.cleaned_data['selected_contact']
+                analysis_type = ContactAnalysisType[contact_form.cleaned_data['analysis_type']]
     else:
         general_form = GeneralAnalysisForm()
         contact_form = ContactAnalysisForm()
-
 
     return render(request, 'analysis/index.html', {
         'general_form' : general_form,

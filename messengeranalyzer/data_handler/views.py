@@ -52,8 +52,7 @@ def create_models_from_extracted_files(extracted_files, extract_path):
         
         # Loop through all folders
         for filename in filenames:
-            # Name of file is "message_1.json"
-            # As of recent update, larger datasets are split into multiple files
+            # Name of file is "message_*.json" - larger datasets are split into multiple files
             filepath = os.path.join(inbox_path, filename)
             message_files = glob.glob(os.path.join(filepath, "message_*.json"))
             if len(message_files) == 0:
@@ -67,14 +66,12 @@ def create_models_from_extracted_files(extracted_files, extract_path):
                 # Only analyze direct messages and if more than 100 messages sent
                 if len(data["messages"]) > 100:
                     # Add contact to collection if does not exist
-                    # print(filename.lower())
                     contact_id = filename.lower()
                     contact_name = data["title"]
 
                     contact = Contact.objects.filter(folder_id=contact_id).first()
 
                     if not contact:
-                        # print("Adding ", contact_name)
                         contact = Contact.objects.create(name=contact_name, folder_id=contact_id, ignore_conflicts=True)
 
                     messages_list = data['messages']
