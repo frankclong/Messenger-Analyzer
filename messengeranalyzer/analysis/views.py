@@ -1,14 +1,13 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render
 
-from data_handler.models import Contact, ConversationMessage
+from data_handler.models import ConversationMessage
 from django.db.models import Count
 
-import matplotlib.pyplot as plt
 from io import StringIO
-import numpy as np
 from .forms import ContactAnalysisForm, GeneralAnalysisForm
 from .enums import GeneralAnalysisType, ContactAnalysisType
 from .general_analysis_functions import top_n, msgsvtime_all, message_hours
+from .contact_analysis_functions import msgsvtime_contact, word_spectrum
 
 def get_my_name():
     my_name_obj = ConversationMessage.objects.values("sender_name") \
@@ -40,14 +39,15 @@ def handle_general_analysis(analysis_type: GeneralAnalysisType):
 
     return render_graph(fig)    
 
-def result(request):
-    fig = top_n(10)
-    graph = render_graph(fig)
-    
-    return render(request, 'analysis/result.html',
-                  {
-                      "graph" : graph
-                  })
+def handle_contact_analysis(contact_id: int, analysis_type: ContactAnalysisType):
+    if analysis_type == ContactAnalysisType.MESSAGES_OVER_TIME:
+        fig = msgsvtime_contact(contact_id)
+    elif analysis_type == ContactAnalysisType.WORD_SPECTRUM:
+        fig = word_spectrum(contact_id)
+    else:
+        return None 
+
+    return render_graph(fig)    
 
 def index(request):
     graph = None
@@ -64,6 +64,7 @@ def index(request):
             if contact_form.is_valid():
                 selected_contact = contact_form.cleaned_data['selected_contact']
                 analysis_type = ContactAnalysisType[contact_form.cleaned_data['analysis_type']]
+                graph = handle_contact_analysis(selected_contact, analysis_type)
     else:
         general_form = GeneralAnalysisForm()
         contact_form = ContactAnalysisForm()
