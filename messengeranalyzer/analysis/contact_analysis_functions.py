@@ -17,7 +17,7 @@ def msgsvtime_contact(contact):
     contact_name = contact.name
 
     # Get messages sent	
-    messages_sent = ConversationMessage.objects.filter(~Q(sender_name=contact_name) & valid_message_filter()
+    messages_sent = ConversationMessage.objects.filter(Q(contact=contact) & ~Q(sender_name=contact_name) & valid_message_filter()
         ).annotate(
             year=ExtractYear('sent_time'),
             month=ExtractMonth('sent_time'),
@@ -34,7 +34,7 @@ def msgsvtime_contact(contact):
         sent_counts.append(val['count'])
 
     # Get messages received
-    messages_rcvd = ConversationMessage.objects.filter(Q(sender_name=contact_name) & valid_message_filter()
+    messages_rcvd = ConversationMessage.objects.filter(Q(contact=contact) & Q(sender_name=contact_name) & valid_message_filter()
         ).annotate(
             year=ExtractYear('sent_time'),
             month=ExtractMonth('sent_time'),
@@ -72,12 +72,12 @@ def word_spectrum(contact):
     contact_name = contact.name
 	
     nlp = spacy.load('en_core_web_sm')
-    sent_messages = ConversationMessage.objects.filter(~Q(sender_name=contact_name) & valid_message_filter()
+    sent_messages = ConversationMessage.objects.filter(Q(contact=contact) & ~Q(sender_name=contact_name) & valid_message_filter()
         ).values('content', 'timestamp_ms').annotate(
             count=Count('id')
         ).order_by('-timestamp_ms')[:5000]
     
-    rcvd_messages = ConversationMessage.objects.filter(Q(sender_name=contact_name) & valid_message_filter()
+    rcvd_messages = ConversationMessage.objects.filter(Q(contact=contact) & Q(sender_name=contact_name) & valid_message_filter()
         ).values('content', 'timestamp_ms').annotate(
             count=Count('id')
         ).order_by('-timestamp_ms')[:5000]
