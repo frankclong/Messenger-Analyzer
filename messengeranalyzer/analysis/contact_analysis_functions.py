@@ -7,6 +7,7 @@ import spacy
 import pandas as pd
 import seaborn as sns
 import numpy as np
+from .query_filters import valid_message_filter
 
 FB_BLUE = (0,0.5176,1,1)
 FB_GREY = '#b6b6bc' # #b6b6bc, #cccdd4
@@ -16,7 +17,7 @@ def msgsvtime_contact(contact):
     contact_name = contact.name
 
     # Get messages sent	
-    messages_sent = ConversationMessage.objects.filter(~Q(sender_name=contact_name) & Q(contact=contact)
+    messages_sent = ConversationMessage.objects.filter(~Q(sender_name=contact_name) & valid_message_filter()
         ).annotate(
             year=ExtractYear('sent_time'),
             month=ExtractMonth('sent_time'),
@@ -33,7 +34,7 @@ def msgsvtime_contact(contact):
         sent_counts.append(val['count'])
 
     # Get messages received
-    messages_rcvd = ConversationMessage.objects.filter(Q(sender_name=contact_name) & Q(contact=contact)
+    messages_rcvd = ConversationMessage.objects.filter(Q(sender_name=contact_name) & valid_message_filter()
         ).annotate(
             year=ExtractYear('sent_time'),
             month=ExtractMonth('sent_time'),
@@ -71,18 +72,22 @@ def word_spectrum(contact):
     contact_name = contact.name
 	
     nlp = spacy.load('en_core_web_sm')
-    sent_messages = ConversationMessage.objects.filter(~Q(sender_name=contact_name) & Q(contact=contact)
+    sent_messages = ConversationMessage.objects.filter(~Q(sender_name=contact_name) & valid_message_filter()
         ).values('content', 'timestamp_ms').annotate(
             count=Count('id')
         ).order_by('-timestamp_ms')[:5000]
     
-    rcvd_messages = ConversationMessage.objects.filter(Q(sender_name=contact_name) & Q(contact=contact)
+    rcvd_messages = ConversationMessage.objects.filter(Q(sender_name=contact_name) & valid_message_filter()
         ).values('content', 'timestamp_ms').annotate(
             count=Count('id')
         ).order_by('-timestamp_ms')[:5000]
     
-    sent_messages_joined = ' '.join(map(lambda x: x['content'], sent_messages))
-    rcvd_messages_joined = ' '.join(map(lambda x: x['content'], rcvd_messages))
+    def decode(string):
+        byte_sequence = string.encode('latin1')
+        return byte_sequence.decode('utf-8')
+
+    sent_messages_joined = ' '.join(map(lambda x: decode(x['content']), sent_messages))
+    rcvd_messages_joined = ' '.join(map(lambda x: decode(x['content']), rcvd_messages))
 
     # Get contact name
     word_counts = {}
@@ -93,9 +98,9 @@ def word_spectrum(contact):
     message_doc = nlp(sent_messages_joined)
     # Remove all punctuation
     for token in message_doc:
-        word = str(token.lemma_).lower()
+        word = str(token.lemma_).lower().strip()
         # Ignore stopwords and punctuations and pronouns and short words (2 or less letters)
-        if (not token.is_stop) and (not token.is_punct) and (len(token) > 2):
+        if (not token.is_stop) and (not token.is_punct) and (len(word) > 2): 
             my_count += 1
             if word in word_counts.keys():
                 word_counts.update({word:[word_counts[word][0]+1, word_counts[word][1]]})
@@ -106,9 +111,9 @@ def word_spectrum(contact):
     message_doc = nlp(rcvd_messages_joined)
     # Remove all punctuation
     for token in message_doc:
-        word = str(token.lemma_).lower()
+        word = str(token.lemma_).lower().strip()
         # Ignore stopwords and punctuations and pronouns and short words (2 or less letters)
-        if (not token.is_stop) and (not token.is_punct) and (len(token) > 2):
+        if (not token.is_stop) and (not token.is_punct) and (len(word) > 2):
             # Left is me, right is converser
             friend_count += 1
             if word in word_counts.keys():

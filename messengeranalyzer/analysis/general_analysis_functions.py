@@ -5,6 +5,7 @@ from django.db.models import Count, Q
 from django.db.models.functions import ExtractMonth, ExtractYear, ExtractHour
 import datetime
 import pytz
+from .query_filters import valid_message_filter
 
 # This class contains functions that are called by views.handle_general_analysis.
 # Each function should return a matplotlib fig
@@ -41,7 +42,7 @@ def top_n(n):
 
 def msgsvtime_all(my_name):
 	# Get messages sent	
-	messages_sent = ConversationMessage.objects.filter(sender_name=my_name
+	messages_sent = ConversationMessage.objects.filter(Q(sender_name=my_name) & valid_message_filter()
         ).annotate(
 			year=ExtractYear('sent_time'),
 			month=ExtractMonth('sent_time'),
@@ -58,7 +59,7 @@ def msgsvtime_all(my_name):
 		sent_counts.append(val['count'])
 	
 	# Get messages received
-	messages_rcvd = ConversationMessage.objects.filter(~Q(sender_name=my_name)
+	messages_rcvd = ConversationMessage.objects.filter(~Q(sender_name=my_name) & valid_message_filter()
 		).annotate(
 			year=ExtractYear('sent_time'),
 			month=ExtractMonth('sent_time'),
@@ -97,7 +98,7 @@ def message_hours(my_name):
 		return local_time.hour
 
 
-	vals = ConversationMessage.objects.filter(Q(sender_name=my_name)
+	vals = ConversationMessage.objects.filter(Q(sender_name=my_name) & valid_message_filter()
             ).annotate(
                 hour=ExtractHour('sent_time')
             ).values('hour').annotate(
