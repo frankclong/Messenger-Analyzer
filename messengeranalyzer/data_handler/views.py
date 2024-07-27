@@ -10,7 +10,7 @@ import datetime
 from pytz import timezone
 from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
-from django.db.models import Q
+from django.db.models import Q, Count
 
 INBOX_FOLDERS = ["inbox", "e2ee_cutover"]
 
@@ -119,3 +119,26 @@ def delete_data(request):
     messages = ConversationMessage.objects.filter(Q(user=user))
     messages.delete()
     return redirect('core:index')
+
+@login_required
+def clean_duplicates(request):
+    user = request.user
+    duplicates = (
+        ConversationMessage.objects.filter(user=user).values('contact', 'sender_name', 'content', 'timestamp_ms')
+        .annotate(duplicate_count=Count('id'))
+        .filter(duplicate_count__gt=1)
+    )
+
+    for duplicate in duplicates:
+        objects_to_delete = ConversationMessage.objects.filter(
+            user=user,
+            contact=duplicate['contact'],
+            sender_name=duplicate['sender_name'],
+            content=duplicate['content'],
+            timestamp_ms=duplicate['timestamp_ms']
+        )[1:]  # Skip the first object to keep one instance
+
+        objects_to_delete.delete()
+
+    return redirect('core:index')
+

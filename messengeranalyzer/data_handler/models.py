@@ -25,4 +25,4 @@ class ConversationMessage(models.Model):
     sent_time = models.DateTimeField()
 
     class Meta:
-        unique_together = ('content', 'sender_name', 'timestamp_ms')
+        unique_together = ('user', 'contact', 'content', 'sender_name', 'timestamp_ms')
