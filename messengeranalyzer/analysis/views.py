@@ -9,6 +9,7 @@ from .enums import GeneralAnalysisType, ContactAnalysisType
 from .general_analysis_functions import top_n, msgsvtime_all, message_hours
 from .contact_analysis_functions import msgsvtime_contact, word_spectrum
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import User
 
 def get_my_name():
     my_name_obj = ConversationMessage.objects.values("sender_name") \
@@ -28,23 +29,23 @@ def render_graph(fig):
     data = imgdata.getvalue()
     return data
 
-def handle_general_analysis(analysis_type: GeneralAnalysisType):
+def handle_general_analysis(user: User, analysis_type: GeneralAnalysisType):
     if analysis_type == GeneralAnalysisType.TOP:
-        fig = top_n(10)
+        fig = top_n(user, 10)
     elif analysis_type == GeneralAnalysisType.MESSAGES_OVER_TIME:
-        fig = msgsvtime_all(get_my_name())
+        fig = msgsvtime_all(user, get_my_name())
     elif analysis_type == GeneralAnalysisType.MESSAGES_SENT_BY_HOUR:
-        fig = message_hours(get_my_name())
+        fig = message_hours(user, get_my_name())
     else:
         return None 
 
     return render_graph(fig)    
 
-def handle_contact_analysis(contact_id: int, analysis_type: ContactAnalysisType):
+def handle_contact_analysis(user: User, contact_id: int, analysis_type: ContactAnalysisType):
     if analysis_type == ContactAnalysisType.MESSAGES_OVER_TIME:
-        fig = msgsvtime_contact(contact_id)
+        fig = msgsvtime_contact(user, contact_id)
     elif analysis_type == ContactAnalysisType.WORD_SPECTRUM:
-        fig = word_spectrum(contact_id)
+        fig = word_spectrum(user, contact_id)
     else:
         return None 
 
@@ -56,20 +57,20 @@ def index(request):
     if request.method == 'POST':
         if 'submit_general_form' in request.POST:
             general_form = GeneralAnalysisForm(request.POST)
-            contact_form = ContactAnalysisForm()
+            contact_form = ContactAnalysisForm(user=request.user)
             if general_form.is_valid():
                 analysis_type = GeneralAnalysisType[general_form.cleaned_data['analysis_type']]
-                graph = handle_general_analysis(analysis_type)
+                graph = handle_general_analysis(request.user, analysis_type)
         elif 'submit_contact_form' in request.POST:
             general_form = GeneralAnalysisForm()
-            contact_form = ContactAnalysisForm(request.POST)
+            contact_form = ContactAnalysisForm(request.POST, user=request.user)
             if contact_form.is_valid():
                 selected_contact = contact_form.cleaned_data['selected_contact']
                 analysis_type = ContactAnalysisType[contact_form.cleaned_data['analysis_type']]
-                graph = handle_contact_analysis(selected_contact, analysis_type)
+                graph = handle_contact_analysis(request.user, selected_contact, analysis_type)
     else:
         general_form = GeneralAnalysisForm()
-        contact_form = ContactAnalysisForm()
+        contact_form = ContactAnalysisForm(user=request.user)
 
     return render(request, 'analysis/index.html', {
         'general_form' : general_form,

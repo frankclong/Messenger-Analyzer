@@ -13,11 +13,11 @@ from .query_filters import valid_message_filter
 FB_BLUE = (0,0.5176,1,1)
 FB_GREY = '#b6b6bc' # #b6b6bc, #cccdd4
 
-def top_n(n):
+def top_n(user, n):
     fig = plt.figure(figsize = [10, 5])
     ax = fig.add_axes([0.1,0.2,0.85,0.7]) 
 
-    query = ConversationMessage.objects.all().values("contact") \
+    query = ConversationMessage.objects.filter(user=user).values("contact") \
         .annotate(count=Count("contact")) \
         .order_by('-count')
     top_messaged = query[:n]
@@ -40,9 +40,9 @@ def top_n(n):
 
     return fig
 
-def msgsvtime_all(my_name):
+def msgsvtime_all(user, my_name):
 	# Get messages sent	
-	messages_sent = ConversationMessage.objects.filter(Q(sender_name=my_name) & valid_message_filter()
+	messages_sent = ConversationMessage.objects.filter(Q(user=user) & Q(sender_name=my_name) & valid_message_filter()
         ).annotate(
 			year=ExtractYear('sent_time'),
 			month=ExtractMonth('sent_time'),
@@ -59,7 +59,7 @@ def msgsvtime_all(my_name):
 		sent_counts.append(val['count'])
 	
 	# Get messages received
-	messages_rcvd = ConversationMessage.objects.filter(~Q(sender_name=my_name) & valid_message_filter()
+	messages_rcvd = ConversationMessage.objects.filter(Q(user=user) & ~Q(sender_name=my_name) & valid_message_filter()
 		).annotate(
 			year=ExtractYear('sent_time'),
 			month=ExtractMonth('sent_time'),
@@ -88,7 +88,7 @@ def msgsvtime_all(my_name):
 	
 	return fig
 	
-def message_hours(my_name):
+def message_hours(user, my_name):
 	def convert_utc_hr_to_local(utc_hr):
 		utc_now = datetime.datetime.utcnow()
 		utc_time = utc_now.replace(hour=utc_hr, minute=0, second=0, microsecond=0)
@@ -98,7 +98,7 @@ def message_hours(my_name):
 		return local_time.hour
 
 
-	vals = ConversationMessage.objects.filter(Q(sender_name=my_name) & valid_message_filter()
+	vals = ConversationMessage.objects.filter(Q(user=user) & Q(sender_name=my_name) & valid_message_filter()
             ).annotate(
                 hour=ExtractHour('sent_time')
             ).values('hour').annotate(
