@@ -75,7 +75,7 @@ def create_models_from_extracted_files(extracted_files, extract_path, user):
                     contact = Contact.objects.filter(Q(folder_id=contact_id) & Q(user=user)).first()
 
                     if not contact:
-                        contact = Contact.objects.create(user=user, name=contact_name, folder_id=contact_id, ignore_conflicts=True)
+                        contact = Contact.objects.create(user=user, name=contact_name, folder_id=contact_id)
 
                     messages_list = data['messages']
                     message_models = []
