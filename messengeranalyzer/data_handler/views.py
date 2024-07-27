@@ -110,3 +110,12 @@ def upload_zip(request):
     else:
         form = MessagesDataUploadForm()
     return render(request, 'data_handler/upload.html', {'form': form})
+
+@login_required
+def delete_data(request):
+    user = request.user 
+    contacts = Contact.objects.filter(Q(user=user))
+    contacts.delete()
+    messages = ConversationMessage.objects.filter(Q(user=user))
+    messages.delete()
+    return redirect('core:index')

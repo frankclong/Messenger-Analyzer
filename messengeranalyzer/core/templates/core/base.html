@@ -42,6 +42,7 @@
             <div class="space-x-6">
                 {% if user.is_authenticated %}
                 <a href="{% url 'data_handler:upload' %}" class="px-6 py-3 text-lg font-semibold bg-blue-500 text-white rounded-xl hover:bg-blue-700">Upload Data</a>
+                <a href="{% url 'data_handler:delete' %}" class="px-6 py-3 text-lg font-semibold bg-red-500 text-white rounded-xl hover:bg-red-700">Delete Data</a>
                 <a href="{% url 'core:logout' %}" class="px-6 py-3 text-lg font-semibold bg-blue-500 text-white rounded-xl hover:bg-blue-700">Logout</a>
                 {% else %}
                 <a href="{% url 'core:signup' %}" class="px-6 py-3 text-lg font-semibold bg-blue-500 text-white rounded-xl hover:bg-blue-700">Sign up</a>
