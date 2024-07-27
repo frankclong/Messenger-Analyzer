@@ -8,6 +8,7 @@ from .forms import ContactAnalysisForm, GeneralAnalysisForm
 from .enums import GeneralAnalysisType, ContactAnalysisType
 from .general_analysis_functions import top_n, msgsvtime_all, message_hours
 from .contact_analysis_functions import msgsvtime_contact, word_spectrum
+from django.contrib.auth.decorators import login_required
 
 def get_my_name():
     my_name_obj = ConversationMessage.objects.values("sender_name") \
@@ -49,6 +50,7 @@ def handle_contact_analysis(contact_id: int, analysis_type: ContactAnalysisType)
 
     return render_graph(fig)    
 
+@login_required
 def index(request):
     graph = None
     if request.method == 'POST':

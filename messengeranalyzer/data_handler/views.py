@@ -8,6 +8,9 @@ import json
 from .models import Contact, ConversationMessage
 import datetime 
 from pytz import timezone
+from django.contrib.auth.models import User
+from django.contrib.auth.decorators import login_required
+from django.db.models import Q
 
 INBOX_FOLDERS = ["inbox", "e2ee_cutover"]
 
@@ -38,7 +41,7 @@ def find_specific_folder(root_dir, target_folder_name):
             return os.path.join(dirpath, target_folder_name)
     return None
 
-def create_models_from_extracted_files(extracted_files, extract_path):
+def create_models_from_extracted_files(extracted_files, extract_path, user):
     tz = timezone('US/Eastern')
 
     for inbox_folder in INBOX_FOLDERS: 
@@ -69,10 +72,10 @@ def create_models_from_extracted_files(extracted_files, extract_path):
                     contact_id = filename.lower()
                     contact_name = data["title"]
 
-                    contact = Contact.objects.filter(folder_id=contact_id).first()
+                    contact = Contact.objects.filter(Q(folder_id=contact_id) & Q(user=user)).first()
 
                     if not contact:
-                        contact = Contact.objects.create(name=contact_name, folder_id=contact_id, ignore_conflicts=True)
+                        contact = Contact.objects.create(user=user, name=contact_name, folder_id=contact_id, ignore_conflicts=True)
 
                     messages_list = data['messages']
                     message_models = []
@@ -83,6 +86,7 @@ def create_models_from_extracted_files(extracted_files, extract_path):
                             dt_obj = datetime.datetime.fromtimestamp(int(ts/1000), tz)
 
                             conversation_message = ConversationMessage(
+                                user=user,
                                 sender_name=message_obj["sender_name"],
                                 content=message_obj["content"],
                                 contact=contact,
@@ -94,13 +98,14 @@ def create_models_from_extracted_files(extracted_files, extract_path):
                     
 
 # Views
+@login_required
 def upload_zip(request):
     if request.method == 'POST':
         form = MessagesDataUploadForm(request.POST, request.FILES)
         if form.is_valid():
             uploaded_file_path = handle_uploaded_file(request.FILES['file'])
             extracted_files, extract_path = extract_zip(uploaded_file_path)
-            create_models_from_extracted_files(extracted_files, extract_path)
+            create_models_from_extracted_files(extracted_files, extract_path, request.user)
             return redirect('core:index') # TODO redirect
     else:
         form = MessagesDataUploadForm()

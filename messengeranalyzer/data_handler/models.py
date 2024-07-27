@@ -1,4 +1,5 @@
 from django.db import models
+from django.contrib.auth.models import User
 
 class MessagesDataUpload(models.Model):
     file = models.FileField(upload_to='uploads/')
@@ -6,6 +7,7 @@ class MessagesDataUpload(models.Model):
 
 
 class Contact(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
     name = models.TextField()
     folder_id = models.TextField(unique=True)
 
@@ -14,6 +16,7 @@ class Contact(models.Model):
     
 
 class ConversationMessage(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
     sender_name = models.TextField()
     content = models.TextField()
 

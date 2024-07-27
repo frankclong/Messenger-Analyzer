@@ -38,8 +38,15 @@
         <nav class="py-6 px-6 flex justify-between items-center border-b border-gray-200">
             <a href="/" class="text-xl font-semibold">Messenger Analyzer</a>
 
+            
             <div class="space-x-6">
+                {% if user.is_authenticated %}
                 <a href="{% url 'data_handler:upload' %}" class="px-6 py-3 text-lg font-semibold bg-blue-500 text-white rounded-xl hover:bg-blue-700">Upload Data</a>
+                <a href="{% url 'core:logout' %}" class="px-6 py-3 text-lg font-semibold bg-blue-500 text-white rounded-xl hover:bg-blue-700">Logout</a>
+                {% else %}
+                <a href="{% url 'core:signup' %}" class="px-6 py-3 text-lg font-semibold bg-blue-500 text-white rounded-xl hover:bg-blue-700">Sign up</a>
+                <a href="{% url 'core:login' %}" class="px-6 py-3 text-lg font-semibold bg-blue-500 text-white rounded-xl hover:bg-blue-700">Log in</a>
+                {% endif %}
             </div>
         </nav>
 
