@@ -9,10 +9,13 @@ class MessagesDataUpload(models.Model):
 class Contact(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     name = models.TextField()
-    folder_id = models.TextField(unique=True)
+    folder_id = models.TextField()
 
     def __str__(self):
         return self.name
+    
+    class Meta:
+        unique_together = ('user', 'folder_id')
     
 
 class ConversationMessage(models.Model):

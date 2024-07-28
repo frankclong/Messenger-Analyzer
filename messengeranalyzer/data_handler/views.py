@@ -67,7 +67,7 @@ def create_models_from_extracted_files(extracted_files, extract_path, user):
                     data = json.load(f)
             
                 # Only analyze direct messages and if more than 100 messages sent
-                if len(data["messages"]) > 100:
+                if len(data["participants"]) == 2 and len(data["messages"]) > 100:
                     # Add contact to collection if does not exist
                     contact_id = filename.lower()
                     contact_name = data["title"]
