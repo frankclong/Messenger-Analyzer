@@ -8,3 +8,5 @@ pymongo
 django
 pillow
 dj-database-url
+psycopg2
+psycopg
