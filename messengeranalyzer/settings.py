@@ -75,13 +75,17 @@ WSGI_APPLICATION = 'messengeranalyzer.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
+import dj_database_url
+import os 
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
-}
+if not DEBUG:
+    DATABASES = {'default': dj_database_url.parse(os.environ.get('DATABASE_URL'))}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': 'db.sqlite3',
+        }}
 
 MEDIA_URL = 'media/'
 MEDIA_ROOT = BASE_DIR / 'media'
