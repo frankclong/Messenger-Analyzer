@@ -1,0 +1,97 @@
+<h1 id="messenger-analyzer">Messenger-Analyzer</h1>
+<p>Analyze your Messenger conversations!</p>
+
+<h2 id="how-to-download-facebook-messages-data">How to download Facebook Messages Data</h2>
+<ol>
+  <li>
+    After logging in to facebook.com, click the dropdown menu in the top right corner. Select &quot;Settings &amp; Privacy&quot; --&gt; &quot;Settings&quot;
+    <br />
+  </li>
+</ol>
+<p>
+  <img src="./img/dlfb1.JPG" alt="alt text" />
+  <img src="./img/dlfb2.JPG" alt="alt text" />
+</p>
+<ol>
+  <li>
+    On the left panel, select &quot;Your Facebook Information&quot;. Then click on &quot;View&quot; by &quot;Download Your Information&quot;
+    <br />
+  </li>
+</ol>
+<p>
+  <img src="./img/dlfb3.JPG" alt="alt text" />
+  <img src="./img/dlfb4.JPG" alt="alt text" />
+</p>
+<ol>
+  <li>
+    Choose your date range, set the media quality to low (allows for fast download as we don&#39;t access the media files), and set the format to JSON. In the selection menu beneath, &quot;Deselect All&quot; then check off &quot;Messages&quot;
+    <br />
+  </li>
+</ol>
+<p>
+  <img src="./img/dlfb5.JPG" alt="alt text" />
+</p>
+<ol>
+  <li>After the download is ready, you will be notified. Download the zip file. The data is now ready to be fed to the program!</li>
+</ol>
+<h2 id="major-functions">Major functions</h2>
+<h3 id="load-">load()</h3>
+<p>Connects to local MongoDB database and creates two collections:</p>
+<ul>
+  <li>contacts - each document has a name and contact_id field</li>
+  <li>messages - collection of all messages sent and received as per the provided JSON files. Additional fields for conversation identification and dates are added</li>
+</ul>
+<h3 id="update-">update()</h3>
+<p>Connects to local MongoDB and adds data to the existing collections. This is almost identical to load(). Kept separate for now in case of future changes.</p>
+<h3 id="cleanup-">cleanup()</h3>
+<p>Connects to local MongoDB and looks through the messages collection for documents that have the same &quot;timestamp&quot;, &quot;sender_name&quot;, and &quot;content&quot;. Keeps the first document and removes subsequent ones.</p>
+<h3 id="getlastmessage-">getLastMessage()</h3>
+<p>
+  Returns the date of the last message in the database. This allows you to know which date to start at when downloading data again to update the database. Note that since Facebook does not allow you to specify the hour, it is recommended to start on the next day. Unfortunately, you will miss any messages sent the previous day after the last download. Due to addition of the <code>cleanup()</code> function, you can now start retrieving on the day returned by this function, but cleanup time may be long.
+</p>
+<h3 id="getname-">getName()</h3>
+<p>Determines the name of the owner of the inbox by assuming that name is the one with the highest total messages sent count.</p>
+<h3 id="main-">main()</h3>
+<p>Launches the tkinter GUI to allow the user to select various visualizations built using Matplotlib, Pandas, and Seaborn with data queried from MongoDB.</p>
+<h2 id="available-visualizations">Available Visualizations</h2>
+<p>Note that date filters will be added soon.</p>
+<h3 id="top-10-n-most-messaged">Top 10 (n) Most Messaged</h3>
+<p>
+  Identifies who you have exchanged the most messages with ever! WARNING: Results may surprise you
+  <br />
+</p>
+<p>
+  <img src="./img/topn.png" alt="alt text" />
+</p>
+<h3 id="messages-over-time-sent-and-received-">Messages over time (sent and received)</h3>
+<p>
+  Shows activity over time. May be able to identify cyclical patterns or trends. Can also see the effect of certain events on your messaging habits (e.g. Do I talk to more people during a global pandemic?)
+  <br />
+</p>
+<p>
+  <img src="./img/msg_v_time.PNG" alt="alt text" />
+</p>
+<h3 id="messages-over-time-with-a-specific-contact-sent-and-received-">Messages over time with a specific contact (sent and received)</h3>
+<p>
+  Similar to above.
+  <br />
+</p>
+<p>
+  <img src="./img/msg_v_time_contact.png" alt="alt text" />
+</p>
+<h3 id="hourly-distribution-of-sent-messages">Hourly Distribution of sent messages</h3>
+<p>
+  Provides information on when you are most likely to reply. Can be used to identify unhealthy patterns or habits.
+  <br />
+</p>
+<p>
+  <img src="./img/msg_dist.JPG" alt="alt text" />
+</p>
+<h3 id="word-spectrum">Word spectrum</h3>
+<p>
+  For a specific contact, identify which words you are more likely to type opposed to your contact.
+  <br />
+</p>
+<p>
+  <img src="./img/wordspectrum.PNG" alt="alt text" />
+</p>
