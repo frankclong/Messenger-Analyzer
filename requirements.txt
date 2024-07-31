@@ -7,3 +7,8 @@ https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.7.1
 pymongo
 django
 pillow
+dj-database-url
+psycopg2
+psycopg
+gunicorn==19.7.1
+whitenoise
