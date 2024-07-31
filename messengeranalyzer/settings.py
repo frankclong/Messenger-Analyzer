@@ -27,8 +27,9 @@ SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY','django-insecure-exj%%mx-28(#3=4
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DJANGO_DEBUG', '') != 'False'
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['messenger-analyzer.onrender.com', '127.0.0.1']
 
+CSRF_TRUSTED_ORIGINS = ['messenger-analyzer.onrender.com']
 
 # Application definition
 
