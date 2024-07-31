@@ -29,7 +29,7 @@ DEBUG = os.environ.get('DJANGO_DEBUG', '') != 'False'
 
 ALLOWED_HOSTS = ['messenger-analyzer.onrender.com', '127.0.0.1']
 
-CSRF_TRUSTED_ORIGINS = ['messenger-analyzer.onrender.com']
+CSRF_TRUSTED_ORIGINS = ['https://messenger-analyzer.onrender.com']
 
 # Application definition
 
