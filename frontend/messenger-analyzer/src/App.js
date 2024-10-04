@@ -27,7 +27,7 @@ class App extends React.Component {
         {this.state.details.map((output, id) => (
           <div key={output.id}>
             <div>
-              <h2>{output.title}</h2>
+              <h2 className="text-3xl font-bold underline">{output.title}</h2>
               <h3>{output.body}</h3>
             </div>
           </div>
