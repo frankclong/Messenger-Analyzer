@@ -18,18 +18,12 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
-from rest_framework.routers import DefaultRouter
-from core.api.urls import post_router
-from core.api.views import MyView
-
-router = DefaultRouter()
-router.registry.extend(post_router.registry)
 
 urlpatterns = [
     path('', include('core.urls')),
     path('admin/', admin.site.urls),
     path('data/', include('data_handler.urls')),
     path('analysis/', include('analysis.urls')),
-    # path('api/', include('messengeranalyzer.api.urls')),
-    path('api/', MyView.as_view(), name="myview")
+    path('api/', include('messengeranalyzer.api.urls')),
+    path("api-auth/", include("rest_framework.urls"))
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

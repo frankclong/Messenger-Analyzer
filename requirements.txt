@@ -8,3 +8,10 @@ pymongo
 django
 pillow
 djangorestframework
+djangorestframework-simplejwt
+python-dotenv
+asgiref
+PyJWT
+pytz
+sqlparse
+psycopg2-binary

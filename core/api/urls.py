@@ -1,6 +1,10 @@
-from django.urls import path
-from rest_framework.routers import DefaultRouter
-from .views import PostViewSet
+from django.urls import path, include
 
-post_router = DefaultRouter()
-post_router.register(r'core', PostViewSet)
+from .views import CreateUserView
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+
+urlpatterns = [
+    path("user/register/", CreateUserView.as_view(), name="register"),
+    path("token/", TokenObtainPairView.as_view(), name="get_token"),
+    path("token/refresh/", TokenRefreshView.as_view(), name="refresh"),
+]
