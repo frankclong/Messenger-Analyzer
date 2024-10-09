@@ -4,7 +4,7 @@ import Login from "./pages/Login"
 import Home from "./pages/Home" 
 import Register from "./pages/Register" 
 import NotFound from "./pages/NotFound" 
-import ProtectedRoute from "./components/ProtectedRoute" 
+import ProtectedRoute from "./components/ProtectedRoute"
 
 function Logout() {
   localStorage.clear()
