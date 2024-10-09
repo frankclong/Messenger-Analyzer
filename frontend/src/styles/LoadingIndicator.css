@@ -1,0 +1,20 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.loader-container {
+    @apply flex justify-center items-center
+  }
+  
+.loader {
+    @apply w-12 h-12 border-4 border-gray-200 border-t-4 border-t-blue-500 rounded-full animate-spin
+    }
+
+@keyframes spin {
+0% {
+    transform: rotate(0deg);
+}
+100% {
+    transform: rotate(360deg);
+}
+}
