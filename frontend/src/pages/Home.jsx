@@ -1,12 +1,10 @@
 import Header from "../components/Header";
+import Analyze from "./Analyze";
+import { Navigate } from "react-router-dom";
 
 function Home() {
     return (
-        
-      <div>
-      <Header/>
-      Home
-      </div>
+      <Navigate to="/analyze" />
     )
 }
 

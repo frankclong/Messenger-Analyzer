@@ -3,6 +3,7 @@ import Header from "../components/Header";
 import LoadingIndicator from "../components/LoadingIndicator";
 import { useState, useEffect } from "react";
 import "../styles/Form.css"
+import ProtectedRoute from "../components/ProtectedRoute";
 
 function Analyze() {
     const [generalTypeOptions, setGeneralFormTypeOptions] = useState([]);
@@ -85,7 +86,7 @@ function Analyze() {
     }
 
     return (
-        <div >
+        <ProtectedRoute>
             <Header />
             <h2 className="text-3xl text-center">Analysis</h2>
             {/* General Form */}
@@ -124,7 +125,7 @@ function Analyze() {
                     </div>
                 )}
             </div>
-        </div>
+        </ProtectedRoute>
     );
 }
 
