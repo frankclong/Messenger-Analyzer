@@ -30,5 +30,5 @@ class DataDeleteView(APIView):
     permission_classes = [IsAuthenticated]
     def delete(self, request, *args, **kwargs):
         delete_data(request)
-        return Response({"message": f"Deleted data for user {request.user.name}"}, status=status.HTTP_200_OK)
+        return Response({"message": f"Deleted data for user {request.user.username}"}, status=status.HTTP_200_OK)
 
