@@ -7,6 +7,14 @@ https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.7.1
 pymongo
 django
 pillow
+djangorestframework
+djangorestframework-simplejwt
+python-dotenv
+asgiref
+PyJWT
+pytz
+sqlparse
+psycopg2-binary
 dj-database-url
 psycopg2
 psycopg

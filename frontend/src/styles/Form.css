@@ -1,0 +1,16 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.form-container {
+    @apply flex flex-col items-center justify-center mx-auto my-12 p-5 rounded-lg shadow-md max-w-md
+  }
+  
+  .form-input {
+    @apply w-11/12 p-2 my-2 border border-gray-300 rounded box-border
+  }
+  
+  .form-button {
+    @apply w-11/12 p-2 my-5 bg-blue-500 text-white border-none rounded cursor-pointer transition-colors duration-200 hover:bg-blue-700
+  }
+  

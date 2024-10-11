@@ -24,4 +24,6 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('data/', include('data_handler.urls')),
     path('analysis/', include('analysis.urls')),
+    path('api/', include('messengeranalyzer.api.urls')),
+    path("api-auth/", include("rest_framework.urls"))
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
