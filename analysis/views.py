@@ -9,6 +9,7 @@ from .enums import GeneralAnalysisType, ContactAnalysisType
 from .general_analysis_functions import top_n, msgsvtime_all, message_hours
 from .contact_analysis_functions import msgsvtime_contact, word_spectrum
 from django.contrib.auth.decorators import login_required
+from data_handler.models import Contact
 from django.contrib.auth.models import User
 
 def get_my_name():
@@ -42,10 +43,11 @@ def handle_general_analysis(user: User, analysis_type: GeneralAnalysisType):
     return render_graph(fig)    
 
 def handle_contact_analysis(user: User, contact_id: int, analysis_type: ContactAnalysisType):
+    contact = Contact.objects.get(pk=contact_id)
     if analysis_type == ContactAnalysisType.MESSAGES_OVER_TIME:
-        fig = msgsvtime_contact(user, contact_id)
+        fig = msgsvtime_contact(user, contact)
     elif analysis_type == ContactAnalysisType.WORD_SPECTRUM:
-        fig = word_spectrum(user, contact_id)
+        fig = word_spectrum(user, contact)
     else:
         return None 
 
