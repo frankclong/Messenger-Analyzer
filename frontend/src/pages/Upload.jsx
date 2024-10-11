@@ -10,8 +10,8 @@ function Upload() {
     const [success, setSuccess] = useState(false);
     
     // Handle file change
-    const handleFileChange = (event) => {
-        setFile(event.target.files[0]);
+    const handleFileChange = (e) => {
+        setFile(e.target.files[0]);
     };
 
     const handleSubmit = async (e) => {
@@ -19,9 +19,13 @@ function Upload() {
         e.preventDefault();
 
         try {
-            const res = await api.post('api/data/upload/', { file })
+            const res = await api.post('api/data/upload/', { file },{
+                headers: {
+                    "Content-Type": "multipart/form-data",
+                  }
+            }
+            )
             setSuccess(true)
-
         } catch (error) {
             alert(error)
         } finally {

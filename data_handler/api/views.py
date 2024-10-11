@@ -1,9 +1,7 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework import generics
-from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.permissions import IsAuthenticated
 from .serializers import MessagesDataUploadSerializer
-from django.contrib.auth.models import User 
 from rest_framework import status
 from ..views import handle_uploaded_file, extract_zip, create_models_from_extracted_files, delete_data
 
