@@ -15,3 +15,8 @@ PyJWT
 pytz
 sqlparse
 psycopg2-binary
+dj-database-url
+psycopg2
+psycopg
+gunicorn==19.7.1
+whitenoise

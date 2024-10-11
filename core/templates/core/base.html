@@ -1,5 +1,5 @@
 <!doctype html>
-
+{% load static %}
 <html>
     <head>
         <meta charset="utf-8">
@@ -32,6 +32,7 @@
         <script src="https://cdn.tailwindcss.com"></script>
 
         <title>{% block title %}{% endblock %} | Messenger Analyzer</title>
+        <link rel="shortcut icon" type="image/png" href="{% static 'img/favicon.png' %}" >
     </head>
 
     <body>
