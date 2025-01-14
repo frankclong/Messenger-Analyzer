@@ -6,6 +6,7 @@ from django.db.models.functions import ExtractMonth, ExtractYear, ExtractHour
 import datetime
 import pytz
 from .query_filters import valid_message_filter
+from collections import defaultdict
 
 # This class contains functions that are called by views.handle_general_analysis.
 # Each function should return a matplotlib fig
@@ -108,7 +109,7 @@ def message_hours(user, my_name):
             )
 	
 	hours = range(24)
-	message_count = {}
+	message_count = defaultdict(int)
 	total_messages_count = 0
 	for val in vals:
 		count = val['count']
