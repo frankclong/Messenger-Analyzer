@@ -20,3 +20,4 @@ psycopg2
 psycopg
 gunicorn==19.7.1
 whitenoise
+django-cors-headers
